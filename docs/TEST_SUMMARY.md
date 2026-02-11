@@ -21,14 +21,14 @@ Executed suites:
 Latest results:
 
 - Test files: 7 passed
-- Tests: 57 passed, 0 failed
+- Tests: 58 passed, 0 failed
 
 Coverage (v8):
 
-- Statements: **96.78%**
+- Statements: **97.5%**
 - Branches: **89.47%**
-- Functions: **94.44%**
-- Lines: **97.08%**
+- Functions: **96.29%**
+- Lines: **97.81%**
 
 Coverage gates enforced in config:
 
@@ -47,3 +47,4 @@ Notes:
   - missing-credential write denials
   - subprocess env secret-boundary behavior
   - startup parity drift diagnostics
+  - reconnect + shutdown resilience paths in MCP bridge

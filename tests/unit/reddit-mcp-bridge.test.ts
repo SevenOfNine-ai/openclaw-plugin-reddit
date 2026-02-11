@@ -214,6 +214,17 @@ describe("RedditMcpBridge callTool edge behavior", () => {
     );
   });
 
+  it("reconnect() invokes close and connect", async () => {
+    const bridge = new RedditMcpBridge({ command: "mock", args: [], env: {} }, 1000) as any;
+    bridge.close = vi.fn(async () => undefined);
+    bridge.connect = vi.fn(async () => undefined);
+
+    await bridge.reconnect();
+
+    expect(bridge.close).toHaveBeenCalledTimes(1);
+    expect(bridge.connect).toHaveBeenCalledTimes(1);
+  });
+
   it("close() is safe when no transport exists", async () => {
     const bridge = new RedditMcpBridge({ command: "mock", args: [], env: {} }, 1000) as any;
     bridge.transport = null;
