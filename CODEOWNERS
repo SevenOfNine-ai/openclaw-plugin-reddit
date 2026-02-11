@@ -1,0 +1,30 @@
+# CODEOWNERS
+#
+# Code owners are automatically requested for review when someone opens a pull request
+# that modifies code that they own. Each line is a file pattern followed by one or more owners.
+#
+# More details: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owners for everything in the repo
+* @SevenOfNine-ai
+
+# Security-critical files require additional review
+/src/policy.ts @SevenOfNine-ai
+/src/config.ts @SevenOfNine-ai
+/src/rate-limit.ts @SevenOfNine-ai
+/src/reddit-mcp-bridge.ts @SevenOfNine-ai
+
+# Documentation
+/docs/ @SevenOfNine-ai
+*.md @SevenOfNine-ai
+
+# CI/CD and security configurations
+/.github/ @SevenOfNine-ai
+/openclaw.plugin.json @SevenOfNine-ai
+/.gitignore @SevenOfNine-ai
+/CODEOWNERS @SevenOfNine-ai
+
+# Dependencies
+/package.json @SevenOfNine-ai
+/yarn.lock @SevenOfNine-ai
+/.yarnrc.yml @SevenOfNine-ai

@@ -5,3 +5,20 @@ coverage/
 .env
 .DS_Store
 *.log
+
+# Yarn 4
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+.pnp.*
+
+# GitBook
+_book/
+_site/
+node_modules/
+*.epub
+*.mobi
+*.pdf

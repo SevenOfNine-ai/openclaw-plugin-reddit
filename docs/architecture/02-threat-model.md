@@ -51,9 +51,16 @@ Mitigations:
 - Minimum delay between write operations.
 - Downstream `REDDIT_SAFE_MODE` defaults to strict when writes are enabled.
 
+Known Limitations:
+
+- **Rate limit state is not persisted**: Rate limit counters are stored in-memory only. If the OpenClaw Gateway process restarts, rate limit state resets. This creates a brief window where an attacker with process restart capability could bypass rate limits through repeated restarts.
+- **Impact**: Moderate. Requires both (a) ability to restart the gateway process and (b) valid Reddit credentials. Reddit's own API rate limits and safe mode provide additional defense.
+- **Recommendation for high-security deployments**: Consider implementing persistent rate limit storage (Redis, file-based) or adding startup cooldown delays.
+
 Residual risk:
 
 - Human/operator can still configure unsafe values.
+- Rate limit bypass via process restart (requires privileged access to gateway).
 
 ## T3: Credential leakage via logs or repo files
 

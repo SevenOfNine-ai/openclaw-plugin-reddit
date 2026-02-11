@@ -3,7 +3,7 @@
 Validation command:
 
 ```bash
-npm run validate
+yarn validate
 ```
 
 Executed suites:

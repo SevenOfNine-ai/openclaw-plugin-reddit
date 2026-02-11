@@ -154,12 +154,33 @@ Subprocess env hardening: the plugin forwards only a minimal allowlisted baselin
 - [ ] Keep OpenClaw plugin allowlist explicit (`plugins.allow`).
 - [ ] Run `openclaw security audit --deep` after rollout.
 
+## Security Considerations
+
+### Rate Limit Persistence
+
+**Important**: Rate limit state is stored in-memory and resets on OpenClaw Gateway process restart. For high-security deployments:
+
+- Protect gateway process from unauthorized restarts
+- Monitor for unusual restart patterns
+- Consider implementing persistent rate limit storage if needed
+- Rely on Reddit's own API rate limits as additional defense layer
+
 ## Local development
 
+This project uses **Yarn 4** with corepack.
+
 ```bash
-npm install
-npm run validate
-npm run build
+# Enable corepack (first time only)
+corepack enable
+
+# Install dependencies
+yarn install
+
+# Run all checks
+yarn validate
+
+# Build
+yarn build
 ```
 
 ## Test strategy
@@ -183,8 +204,12 @@ GitHub Actions workflow enforces:
 - tests
 - coverage threshold gate
 
-## Architecture docs
+## Documentation
 
-- [`docs/architecture/README.md`](./docs/architecture/README.md)
+📚 **Full documentation is available at GitHub Pages** (deployed via GitBook)
+
+- [`docs/architecture/README.md`](./docs/architecture/README.md) - Architecture overview
+- [`SECURITY_AUDIT_2026-02-11.md`](./SECURITY_AUDIT_2026-02-11.md) - Security audit report
+- [`CLAUDE.md`](./CLAUDE.md) - Development guide
 - [`docs/research/01-openclaw-plugin-best-practices.md`](./docs/research/01-openclaw-plugin-best-practices.md)
 - [`docs/research/02-template-evaluation.md`](./docs/research/02-template-evaluation.md)

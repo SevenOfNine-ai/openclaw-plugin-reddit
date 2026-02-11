@@ -59,7 +59,10 @@ const plugin = {
 
     const bridge = new RedditMcpBridge(launchSpec, config.startupTimeoutMs);
     const ratePolicy = new RedditRatePolicy(config.rateLimit);
-    const writeGuard = new WritePolicyGuard(config.write);
+    const writeGuard = new WritePolicyGuard({
+      ...config.write,
+      verboseErrors: config.verboseErrors,
+    });
 
     const parity: ParitySnapshot = {
       checkedAt: null,
@@ -76,21 +79,50 @@ const plugin = {
 
     const executeTool = async (toolName: string, params: unknown): Promise<ToolResult> => {
       try {
+        // Validate parameters against Zod schema if available
+        const toolSpec = TOOL_SPECS[toolName as keyof typeof TOOL_SPECS];
+        if (toolSpec?.paramsSchema) {
+          try {
+            toolSpec.paramsSchema.parse(params);
+          } catch (validationError) {
+            api.logger.warn(
+              `[SECURITY] Parameter validation failed: ${toolName}`,
+            );
+            throw new Error(
+              `Invalid parameters for ${toolName}: ${validationError instanceof Error ? validationError.message : String(validationError)}`,
+            );
+          }
+        }
+
         if (isWriteTool(toolName)) {
           if (credentialErrors.length > 0) {
+            api.logger.warn(
+              `[SECURITY] Write operation blocked: ${toolName} - missing credentials`,
+            );
             throw new Error(`Write blocked: ${credentialErrors.join(" ")}`);
           }
 
           writeGuard.ensureToolAllowed(toolName, params);
+
           const writeRate = ratePolicy.checkWrite();
           if (!writeRate.ok) {
+            api.logger.warn(
+              `[SECURITY] Write rate limit exceeded: ${toolName} - retry in ${writeRate.retryAfterMs}ms`,
+            );
             throw new Error(
               `Rate limit: write tool '${toolName}' blocked. Retry in ${writeRate.retryAfterMs}ms.`,
             );
           }
+
+          api.logger.info(
+            `[SECURITY] Write operation allowed: ${toolName}`,
+          );
         } else {
           const readRate = ratePolicy.checkRead();
           if (!readRate.ok) {
+            api.logger.warn(
+              `[SECURITY] Read rate limit exceeded: ${toolName} - retry in ${readRate.retryAfterMs}ms`,
+            );
             throw new Error(
               `Rate limit: read tool '${toolName}' blocked. Retry in ${readRate.retryAfterMs}ms.`,
             );
@@ -113,6 +145,9 @@ const plugin = {
             Boolean((result as { isError?: unknown }).isError),
         };
       } catch (error) {
+        if (error instanceof Error && error.message.includes("blocked") && !error.message.includes("Rate limit")) {
+          api.logger.warn(`[SECURITY] Policy violation: ${toolName} - ${error.message}`);
+        }
         return asErrorResult(error);
       }
     };

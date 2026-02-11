@@ -22,6 +22,11 @@
         "maximum": 120000,
         "default": 15000
       },
+      "verboseErrors": {
+        "type": "boolean",
+        "default": false,
+        "description": "Enable detailed error messages (development/debug mode only)"
+      },
       "reddit": {
         "type": "object",
         "additionalProperties": false,
@@ -120,6 +125,10 @@
     },
     "startupTimeoutMs": {
       "label": "MCP Startup Timeout (ms)",
+      "advanced": true
+    },
+    "verboseErrors": {
+      "label": "Verbose Error Messages",
       "advanced": true
     },
     "reddit.authMode": {

@@ -4,6 +4,7 @@
   "description": "Production-grade OpenClaw Reddit plugin wrapper with secure defaults",
   "license": "MIT",
   "type": "module",
+  "packageManager": "yarn@4.5.3",
   "main": "dist/index.js",
   "files": [
     "dist/",
@@ -24,7 +25,8 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "validate": "npm run lint && npm run typecheck && npm run test:coverage",
+    "audit": "yarn npm audit --all --recursive",
+    "validate": "yarn lint && yarn typecheck && yarn test:coverage",
     "prepack": "npm run clean && npm run build"
   },
   "engines": {

@@ -1,7 +1,10 @@
+import { z } from "zod";
+
 export type ToolSpec = {
   name: string;
   description: string;
   parameters: Record<string, unknown>;
+  paramsSchema?: z.ZodType<any>;
   mode: "read" | "write";
 };
 
@@ -41,11 +44,50 @@ export function isWriteTool(name: string): name is (typeof WRITE_TOOL_NAMES)[num
   return (WRITE_TOOL_NAMES as readonly string[]).includes(name);
 }
 
+// Zod schemas for parameter validation
+const postIdSchema = z.object({
+  subreddit: z.string().min(1).max(100),
+  post_id: z.string().min(1).max(100),
+});
+
+const usernameSchema = z.object({
+  username: z.string().min(1).max(100),
+  sort: z.enum(["new", "hot", "top"]).optional(),
+  time_filter: z.enum(["hour", "day", "week", "month", "year", "all"]).optional(),
+  limit: z.number().int().min(1).max(100).optional(),
+});
+
+const subredditNameSchema = z.object({
+  subreddit_name: z.string().min(1).max(100),
+});
+
+const createPostSchema = z.object({
+  subreddit: z.string().min(1).max(100),
+  title: z.string().min(1).max(300),
+  content: z.string().min(1).max(40000),
+  is_self: z.boolean().optional(),
+});
+
+const replySchema = z.object({
+  post_id: z.string().min(1).max(100),
+  content: z.string().min(1).max(10000),
+});
+
+const editSchema = z.object({
+  thing_id: z.string().min(1).max(100),
+  new_text: z.string().min(1).max(40000),
+});
+
+const deleteSchema = z.object({
+  thing_id: z.string().min(1).max(100),
+});
+
 export const TOOL_SPECS: Record<RedditToolName, ToolSpec> = {
   test_reddit_mcp_server: {
     name: "test_reddit_mcp_server",
     description: "Validate Reddit MCP server reachability and active configuration.",
     parameters: EMPTY_OBJECT_SCHEMA,
+    paramsSchema: z.object({}),
     mode: "read",
   },
   get_reddit_post: {
@@ -61,6 +103,7 @@ export const TOOL_SPECS: Record<RedditToolName, ToolSpec> = {
         post_id: { type: "string" },
       },
     },
+    paramsSchema: postIdSchema,
   },
   get_top_posts: {
     name: "get_top_posts",
@@ -91,6 +134,7 @@ export const TOOL_SPECS: Record<RedditToolName, ToolSpec> = {
         username: { type: "string" },
       },
     },
+    paramsSchema: z.object({ username: z.string().min(1).max(100) }),
   },
   get_user_posts: {
     name: "get_user_posts",
@@ -110,6 +154,7 @@ export const TOOL_SPECS: Record<RedditToolName, ToolSpec> = {
         limit: { type: "number", minimum: 1, maximum: 100 },
       },
     },
+    paramsSchema: usernameSchema,
   },
   get_user_comments: {
     name: "get_user_comments",
@@ -129,6 +174,7 @@ export const TOOL_SPECS: Record<RedditToolName, ToolSpec> = {
         limit: { type: "number", minimum: 1, maximum: 100 },
       },
     },
+    paramsSchema: usernameSchema,
   },
   get_subreddit_info: {
     name: "get_subreddit_info",
@@ -142,6 +188,7 @@ export const TOOL_SPECS: Record<RedditToolName, ToolSpec> = {
         subreddit_name: { type: "string" },
       },
     },
+    paramsSchema: subredditNameSchema,
   },
   get_trending_subreddits: {
     name: "get_trending_subreddits",
@@ -208,6 +255,7 @@ export const TOOL_SPECS: Record<RedditToolName, ToolSpec> = {
         is_self: { type: "boolean" },
       },
     },
+    paramsSchema: createPostSchema,
   },
   reply_to_post: {
     name: "reply_to_post",
@@ -222,6 +270,7 @@ export const TOOL_SPECS: Record<RedditToolName, ToolSpec> = {
         content: { type: "string" },
       },
     },
+    paramsSchema: replySchema,
   },
   edit_post: {
     name: "edit_post",
@@ -236,6 +285,7 @@ export const TOOL_SPECS: Record<RedditToolName, ToolSpec> = {
         new_text: { type: "string" },
       },
     },
+    paramsSchema: editSchema,
   },
   edit_comment: {
     name: "edit_comment",
@@ -250,6 +300,7 @@ export const TOOL_SPECS: Record<RedditToolName, ToolSpec> = {
         new_text: { type: "string" },
       },
     },
+    paramsSchema: editSchema,
   },
   delete_post: {
     name: "delete_post",
@@ -263,6 +314,7 @@ export const TOOL_SPECS: Record<RedditToolName, ToolSpec> = {
         thing_id: { type: "string" },
       },
     },
+    paramsSchema: deleteSchema,
   },
   delete_comment: {
     name: "delete_comment",
@@ -276,5 +328,6 @@ export const TOOL_SPECS: Record<RedditToolName, ToolSpec> = {
         thing_id: { type: "string" },
       },
     },
+    paramsSchema: deleteSchema,
   },
 };
