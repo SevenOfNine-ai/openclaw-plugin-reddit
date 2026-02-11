@@ -1,0 +1,51 @@
+{
+  "name": "openclaw-plugin-reddit",
+  "version": "0.1.0",
+  "description": "Production-grade OpenClaw Reddit plugin wrapper with secure defaults",
+  "license": "MIT",
+  "type": "module",
+  "main": "dist/index.js",
+  "files": [
+    "dist/",
+    "docs/",
+    "README.md",
+    "LICENSE",
+    "openclaw.plugin.json"
+  ],
+  "openclaw": {
+    "extensions": [
+      "./dist/index.js"
+    ]
+  },
+  "scripts": {
+    "clean": "rm -rf dist coverage .tmp-test",
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "validate": "npm run lint && npm run typecheck && npm run test:coverage",
+    "prepack": "npm run clean && npm run build"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.26.0",
+    "reddit-mcp-server": "https://codeload.github.com/SevenOfNine-ai/reddit-mcp-server/tar.gz/aa188ec7aba1b6a81398c626dc0ddd45baa6fb68",
+    "tsx": "^4.21.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.0",
+    "@types/node": "^22.19.7",
+    "@vitest/coverage-v8": "^4.0.18",
+    "eslint": "^9.39.0",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.54.0",
+    "vitest": "^4.0.18"
+  },
+  "peerDependencies": {
+    "openclaw": ">=2026.2.0"
+  }
+}

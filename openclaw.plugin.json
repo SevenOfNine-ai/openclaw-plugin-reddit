@@ -1,0 +1,164 @@
+{
+  "id": "openclaw-plugin-reddit",
+  "name": "OpenClaw Reddit Plugin",
+  "description": "Secure Reddit MCP wrapper with read-only defaults",
+  "version": "0.1.0",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "command": {
+        "type": "string",
+        "description": "Optional override for MCP server command"
+      },
+      "args": {
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "Optional override for MCP server command args"
+      },
+      "startupTimeoutMs": {
+        "type": "integer",
+        "minimum": 1000,
+        "maximum": 120000,
+        "default": 15000
+      },
+      "reddit": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "authMode": {
+            "type": "string",
+            "enum": ["auto", "authenticated", "anonymous"],
+            "default": "auto"
+          },
+          "safeModeReadOnly": {
+            "type": "string",
+            "enum": ["off", "standard", "strict"],
+            "default": "off"
+          },
+          "safeModeWriteEnabled": {
+            "type": "string",
+            "enum": ["off", "standard", "strict"],
+            "default": "strict"
+          },
+          "env": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "clientId": { "type": "string", "default": "REDDIT_CLIENT_ID" },
+              "clientSecret": { "type": "string", "default": "REDDIT_CLIENT_SECRET" },
+              "username": { "type": "string", "default": "REDDIT_USERNAME" },
+              "password": { "type": "string", "default": "REDDIT_PASSWORD" },
+              "userAgent": { "type": "string", "default": "REDDIT_USER_AGENT" }
+            }
+          }
+        }
+      },
+      "write": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "enabled": { "type": "boolean", "default": false },
+          "allowDelete": { "type": "boolean", "default": false },
+          "requireSubredditAllowlist": { "type": "boolean", "default": true },
+          "allowedSubreddits": {
+            "type": "array",
+            "items": { "type": "string" },
+            "default": []
+          }
+        }
+      },
+      "rateLimit": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "readPerMinute": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10000,
+            "default": 60
+          },
+          "writePerMinute": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000,
+            "default": 6
+          },
+          "minWriteIntervalMs": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 600000,
+            "default": 5000
+          }
+        }
+      }
+    }
+  },
+  "uiHints": {
+    "command": {
+      "label": "MCP Command Override",
+      "advanced": true
+    },
+    "args": {
+      "label": "MCP Args Override",
+      "advanced": true
+    },
+    "startupTimeoutMs": {
+      "label": "MCP Startup Timeout (ms)",
+      "advanced": true
+    },
+    "reddit.authMode": {
+      "label": "Reddit Auth Mode"
+    },
+    "reddit.safeModeReadOnly": {
+      "label": "Safe Mode (Read-only)",
+      "advanced": true
+    },
+    "reddit.safeModeWriteEnabled": {
+      "label": "Safe Mode (Write-enabled)"
+    },
+    "reddit.env.clientId": {
+      "label": "Client ID Env Var",
+      "advanced": true
+    },
+    "reddit.env.clientSecret": {
+      "label": "Client Secret Env Var",
+      "advanced": true,
+      "sensitive": true
+    },
+    "reddit.env.username": {
+      "label": "Username Env Var",
+      "advanced": true
+    },
+    "reddit.env.password": {
+      "label": "Password Env Var",
+      "advanced": true,
+      "sensitive": true
+    },
+    "reddit.env.userAgent": {
+      "label": "User Agent Env Var",
+      "advanced": true
+    },
+    "write.enabled": {
+      "label": "Enable Write Tools"
+    },
+    "write.allowDelete": {
+      "label": "Allow Delete Tools"
+    },
+    "write.requireSubredditAllowlist": {
+      "label": "Require Subreddit Allowlist for Create Post"
+    },
+    "write.allowedSubreddits": {
+      "label": "Allowed Subreddits for Post Creation"
+    },
+    "rateLimit.readPerMinute": {
+      "label": "Read Requests per Minute"
+    },
+    "rateLimit.writePerMinute": {
+      "label": "Write Requests per Minute"
+    },
+    "rateLimit.minWriteIntervalMs": {
+      "label": "Minimum Write Interval (ms)"
+    }
+  }
+}
