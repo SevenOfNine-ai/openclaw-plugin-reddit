@@ -28,7 +28,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: "16"
+          node-version: "22"
 
       - name: Enable Corepack
         run: corepack enable
@@ -39,14 +39,14 @@ jobs:
       - name: Setup Pages
         uses: actions/configure-pages@v4
 
-      - name: Install GitBook CLI
-        run: npm install -g gitbook-cli
+      - name: Install HonKit
+        run: npm install -g honkit
 
-      - name: Install GitBook plugins
-        run: gitbook install || true
+      - name: Install HonKit plugins
+        run: honkit install || true
 
-      - name: Build GitBook
-        run: gitbook build . ./_site
+      - name: Build documentation
+        run: honkit build . ./_site
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
