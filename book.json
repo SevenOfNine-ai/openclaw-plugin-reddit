@@ -4,61 +4,16 @@
   "author": "SevenOfNine-ai",
   "language": "en",
   "gitbook": ">=3.2.0",
-  "root": ".",
+  "root": "docs",
   "structure": {
     "readme": "README.md",
-    "summary": "docs/SUMMARY.md"
+    "summary": "SUMMARY.md"
   },
   "plugins": [
-    "github",
-    "edit-link",
-    "prism",
     "-highlight",
-    "copy-code-button",
-    "expandable-chapters-small",
-    "anchors",
-    "page-toc-button",
-    "back-to-top-button",
-    "search-plus",
-    "-search",
-    "splitter",
-    "versions-select",
-    "custom-favicon",
-    "theme-codemirror"
+    "-search"
   ],
-  "pluginsConfig": {
-    "github": {
-      "url": "https://github.com/SevenOfNine-ai/openclaw-plugin-reddit"
-    },
-    "edit-link": {
-      "base": "https://github.com/SevenOfNine-ai/openclaw-plugin-reddit/edit/main",
-      "label": "Edit This Page"
-    },
-    "prism": {
-      "css": [
-        "prism-themes/themes/prism-ghcolors.css"
-      ],
-      "lang": {
-        "flow": "typescript"
-      }
-    },
-    "page-toc-button": {
-      "maxTocDepth": 2,
-      "minTocSize": 2
-    },
-    "versions": {
-      "gitbookConfigURL": "https://raw.githubusercontent.com/SevenOfNine-ai/openclaw-plugin-reddit/main/book.json",
-      "options": [
-        {
-          "value": "https://sevenofnine-ai.github.io/openclaw-plugin-reddit/",
-          "text": "v0.1.0 (latest)"
-        }
-      ]
-    },
-    "theme-codemirror": {
-      "theme": "monokai"
-    }
-  },
+  "pluginsConfig": {},
   "styles": {
     "website": "styles/website.css"
   },

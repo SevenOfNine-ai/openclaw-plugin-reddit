@@ -42,9 +42,6 @@ jobs:
       - name: Install HonKit
         run: npm install -g honkit
 
-      - name: Install HonKit plugins
-        run: honkit install || true
-
       - name: Build documentation
         run: honkit build . ./_site
 
