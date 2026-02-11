@@ -65,7 +65,8 @@ Place under `plugins.entries.openclaw-plugin-reddit.config`.
             authMode: "auto"
           },
           write: {
-            enabled: false
+            enabled: false,
+            allowedTools: []
           }
         }
       }
@@ -90,6 +91,12 @@ Place under `plugins.entries.openclaw-plugin-reddit.config`.
           write: {
             enabled: true,
             allowDelete: false,
+            allowedTools: [
+              "create_post",
+              "reply_to_post",
+              "edit_post",
+              "edit_comment"
+            ],
             requireSubredditAllowlist: true,
             allowedSubreddits: ["test", "myprivatecommunity"]
           },
@@ -134,13 +141,16 @@ Defaults expected by downstream reddit-mcp-server:
 
 You may remap variable names in plugin config under `reddit.env.*`.
 
+Subprocess env hardening: the plugin forwards only a minimal allowlisted baseline environment to the reddit-mcp-server child process, then injects explicit `REDDIT_*` variables. Unrelated host secrets are not forwarded by default.
+
 ## Hardening checklist
 
 - [ ] Keep write mode disabled unless strictly needed.
 - [ ] If enabling writes, keep `safeModeWriteEnabled=strict`.
 - [ ] Keep `allowDelete=false` unless absolutely required.
+- [ ] Explicitly set minimal `write.allowedTools`.
 - [ ] Restrict post creation with `allowedSubreddits`.
-- [ ] Keep write tool allowlist minimal (agent tools policy).
+- [ ] Keep OpenClaw agent write tool allowlist minimal (agent tools policy).
 - [ ] Keep OpenClaw plugin allowlist explicit (`plugins.allow`).
 - [ ] Run `openclaw security audit --deep` after rollout.
 

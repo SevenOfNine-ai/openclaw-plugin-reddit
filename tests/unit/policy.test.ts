@@ -6,6 +6,7 @@ describe("WritePolicyGuard", () => {
     const guard = new WritePolicyGuard({
       enabled: false,
       allowDelete: false,
+      allowedTools: [],
       requireSubredditAllowlist: true,
       allowedSubreddits: [],
     });
@@ -17,6 +18,7 @@ describe("WritePolicyGuard", () => {
     const guard = new WritePolicyGuard({
       enabled: false,
       allowDelete: false,
+      allowedTools: ["create_post"],
       requireSubredditAllowlist: true,
       allowedSubreddits: ["typescript"],
     });
@@ -26,10 +28,25 @@ describe("WritePolicyGuard", () => {
     );
   });
 
+  it("blocks write tools not listed in allowedTools", () => {
+    const guard = new WritePolicyGuard({
+      enabled: true,
+      allowDelete: true,
+      allowedTools: ["reply_to_post"],
+      requireSubredditAllowlist: false,
+      allowedSubreddits: [],
+    });
+
+    expect(() => guard.ensureToolAllowed("create_post", { subreddit: "typescript" })).toThrow(
+      "not listed in write.allowedTools",
+    );
+  });
+
   it("blocks delete when allowDelete is false", () => {
     const guard = new WritePolicyGuard({
       enabled: true,
       allowDelete: false,
+      allowedTools: ["delete_post"],
       requireSubredditAllowlist: false,
       allowedSubreddits: [],
     });
@@ -43,6 +60,7 @@ describe("WritePolicyGuard", () => {
     const guard = new WritePolicyGuard({
       enabled: true,
       allowDelete: false,
+      allowedTools: ["create_post"],
       requireSubredditAllowlist: true,
       allowedSubreddits: ["typescript"],
     });
@@ -56,6 +74,7 @@ describe("WritePolicyGuard", () => {
     const guard = new WritePolicyGuard({
       enabled: true,
       allowDelete: false,
+      allowedTools: ["create_post"],
       requireSubredditAllowlist: true,
       allowedSubreddits: ["typescript"],
     });
@@ -68,6 +87,7 @@ describe("WritePolicyGuard", () => {
     const guard = new WritePolicyGuard({
       enabled: true,
       allowDelete: true,
+      allowedTools: ["delete_comment"],
       requireSubredditAllowlist: false,
       allowedSubreddits: [],
     });
@@ -79,6 +99,7 @@ describe("WritePolicyGuard", () => {
     const guard = new WritePolicyGuard({
       enabled: true,
       allowDelete: false,
+      allowedTools: ["create_post"],
       requireSubredditAllowlist: true,
       allowedSubreddits: ["typescript"],
     });

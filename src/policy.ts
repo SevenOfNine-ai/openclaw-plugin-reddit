@@ -3,15 +3,18 @@ import { isWriteTool } from "./tool-specs.js";
 export type WritePolicyConfig = {
   enabled: boolean;
   allowDelete: boolean;
+  allowedTools: string[];
   requireSubredditAllowlist: boolean;
   allowedSubreddits: string[];
 };
 
 export class WritePolicyGuard {
   private readonly allowedSubreddits: Set<string>;
+  private readonly allowedWriteTools: Set<string>;
 
   public constructor(private readonly config: WritePolicyConfig) {
     this.allowedSubreddits = new Set(config.allowedSubreddits.map((entry) => entry.toLowerCase()));
+    this.allowedWriteTools = new Set(config.allowedTools);
   }
 
   public ensureToolAllowed(toolName: string, params: unknown): void {
@@ -23,6 +26,12 @@ export class WritePolicyGuard {
       throw new Error(
         `Write tool '${toolName}' is blocked: write mode is disabled. ` +
           "Enable write mode explicitly in plugin config.",
+      );
+    }
+
+    if (!this.allowedWriteTools.has(toolName)) {
+      throw new Error(
+        `Write tool '${toolName}' is blocked: it is not listed in write.allowedTools.`,
       );
     }
 

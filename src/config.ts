@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { WRITE_TOOL_NAMES } from "./tool-specs.js";
 
 export const AUTH_MODES = ["auto", "authenticated", "anonymous"] as const;
 export const SAFE_MODES = ["off", "standard", "strict"] as const;
@@ -47,12 +48,14 @@ const pluginConfigSchema = z
       .object({
         enabled: z.boolean().default(false),
         allowDelete: z.boolean().default(false),
+        allowedTools: z.array(z.enum(WRITE_TOOL_NAMES)).default([]),
         requireSubredditAllowlist: z.boolean().default(true),
         allowedSubreddits: z.array(z.string()).default([]),
       })
       .default({
         enabled: false,
         allowDelete: false,
+        allowedTools: [],
         requireSubredditAllowlist: true,
         allowedSubreddits: [],
       }),
@@ -73,6 +76,7 @@ const pluginConfigSchema = z
 export type PluginConfig = z.infer<typeof pluginConfigSchema> & {
   write: z.infer<typeof pluginConfigSchema>["write"] & {
     allowedSubreddits: string[];
+    allowedTools: Array<(typeof WRITE_TOOL_NAMES)[number]>;
   };
 };
 
@@ -87,12 +91,14 @@ export type ResolvedRedditEnv = {
 export function parsePluginConfig(raw: unknown): PluginConfig {
   const parsed = pluginConfigSchema.parse(raw ?? {});
   const allowedSubreddits = normalizeSubreddits(parsed.write.allowedSubreddits);
+  const allowedTools = [...new Set(parsed.write.allowedTools)];
 
   return {
     ...parsed,
     write: {
       ...parsed.write,
       allowedSubreddits,
+      allowedTools,
     },
   };
 }

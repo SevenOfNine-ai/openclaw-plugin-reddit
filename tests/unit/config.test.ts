@@ -12,6 +12,7 @@ describe("config", () => {
 
     expect(config.write.enabled).toBe(false);
     expect(config.write.allowDelete).toBe(false);
+    expect(config.write.allowedTools).toEqual([]);
     expect(config.write.requireSubredditAllowlist).toBe(true);
     expect(config.rateLimit.readPerMinute).toBe(60);
     expect(config.rateLimit.writePerMinute).toBe(6);
@@ -88,6 +89,26 @@ describe("config", () => {
     });
 
     expect(config.write.allowedSubreddits).toEqual(["typescript"]);
+  });
+
+  it("deduplicates allowed write tools", () => {
+    const config = parsePluginConfig({
+      write: {
+        allowedTools: ["create_post", "create_post", "reply_to_post"],
+      },
+    });
+
+    expect(config.write.allowedTools).toEqual(["create_post", "reply_to_post"]);
+  });
+
+  it("rejects unknown write tool names in config", () => {
+    expect(() =>
+      parsePluginConfig({
+        write: {
+          allowedTools: ["totally_invalid_tool"],
+        },
+      }),
+    ).toThrow();
   });
 
   it("treats blank env values as missing", () => {

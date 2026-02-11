@@ -5,7 +5,9 @@ import type { OpenClawPluginApi, ToolDefinition } from "../../src/openclaw-api.j
 const bridgeCallTool = vi.fn(async (name: string, params: unknown): Promise<unknown> => ({
   content: [{ type: "text", text: `ok:${name}:${JSON.stringify(params ?? {})}` }],
 }));
-const bridgeListTools = vi.fn(async () => ALL_TOOL_NAMES.map((name) => ({ name })));
+const bridgeListTools = vi.fn(async (): Promise<Array<{ name: string }>> =>
+  ALL_TOOL_NAMES.map((name) => ({ name })),
+);
 const bridgeClose = vi.fn(async () => undefined);
 const bridgeStatus = vi.fn(() => ({ connected: true, command: "mock", args: ["reddit"] }));
 
@@ -177,6 +179,54 @@ describe("plugin registration and policy behavior", () => {
     expect(result?.content[0]?.text).toContain("write mode is disabled");
   });
 
+  it("blocks write when not included in write.allowedTools", async () => {
+    process.env.REDDIT_USERNAME = "user";
+    process.env.REDDIT_PASSWORD = "pass";
+
+    const { tools } = registerPlugin({
+      write: {
+        enabled: true,
+        allowedTools: ["reply_to_post"],
+        requireSubredditAllowlist: false,
+      },
+    });
+
+    const writeTool = tools.get("create_post")?.tool;
+    const result = await writeTool?.execute("tool-2b", {
+      subreddit: "typescript",
+      title: "hello",
+      content: "world",
+    });
+
+    expect(result?.isError).toBe(true);
+    expect(result?.content[0]?.text).toContain("write.allowedTools");
+  });
+
+  it("blocks writes with missing credentials when write mode enabled", async () => {
+    delete process.env.REDDIT_USERNAME;
+    delete process.env.REDDIT_PASSWORD;
+
+    const { tools, logger } = registerPlugin({
+      write: {
+        enabled: true,
+        allowedTools: ["create_post"],
+        requireSubredditAllowlist: false,
+      },
+    });
+
+    expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining("Write mode enabled"));
+
+    const writeTool = tools.get("create_post")?.tool;
+    const result = await writeTool?.execute("tool-2c", {
+      subreddit: "typescript",
+      title: "hello",
+      content: "world",
+    });
+
+    expect(result?.isError).toBe(true);
+    expect(result?.content[0]?.text).toContain("Write blocked");
+  });
+
   it("blocks read when read rate limit is exceeded", async () => {
     const { tools } = registerPlugin({
       rateLimit: {
@@ -200,6 +250,7 @@ describe("plugin registration and policy behavior", () => {
     const { tools } = registerPlugin({
       write: {
         enabled: true,
+        allowedTools: ["create_post"],
         requireSubredditAllowlist: true,
         allowedSubreddits: ["typescript"],
       },
@@ -224,6 +275,7 @@ describe("plugin registration and policy behavior", () => {
       write: {
         enabled: true,
         allowDelete: false,
+        allowedTools: ["delete_post"],
         requireSubredditAllowlist: false,
       },
     });
@@ -243,6 +295,7 @@ describe("plugin registration and policy behavior", () => {
       write: {
         enabled: true,
         allowDelete: false,
+        allowedTools: ["create_post"],
         requireSubredditAllowlist: true,
         allowedSubreddits: ["typescript"],
       },
@@ -269,6 +322,7 @@ describe("plugin registration and policy behavior", () => {
     const { tools } = registerPlugin({
       write: {
         enabled: true,
+        allowedTools: ["reply_to_post"],
         requireSubredditAllowlist: false,
       },
       rateLimit: {
@@ -306,6 +360,11 @@ describe("plugin registration and policy behavior", () => {
       expect.objectContaining({
         mode: expect.objectContaining({ writeEnabled: false }),
         bridge: expect.objectContaining({ connected: true }),
+        parity: expect.objectContaining({
+          checkedAt: null,
+          missingExpectedTools: [],
+          unexpectedUpstreamTools: [],
+        }),
       }),
     );
 
@@ -319,19 +378,47 @@ describe("plugin registration and policy behavior", () => {
     expect(respondError).toHaveBeenCalledWith(false, expect.objectContaining({ error: "boom" }));
   });
 
-  it("runs service startup checks and stop cleanup", async () => {
-    const { services, logger } = registerPlugin({});
+  it("runs service startup checks, parity warnings, and stop cleanup", async () => {
+    const { services, logger, methods } = registerPlugin({});
     const service = services[0];
     expect(service?.id).toBe("openclaw-plugin-reddit");
 
-    bridgeListTools.mockResolvedValueOnce([{ name: READ_TOOL_NAMES[0] }]);
+    bridgeListTools.mockResolvedValueOnce(
+      [{ name: READ_TOOL_NAMES[0] }, { name: "new_upstream_tool" }] as Array<{ name: string }>,
+    );
     await service?.start();
-    expect(logger.warn).toHaveBeenCalled();
+    expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining("missing expected tools"));
+    expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining("unwrapped tools"));
     expect(logger.info).toHaveBeenCalled();
+
+    const statusHandler = methods.get("openclaw-plugin-reddit.status");
+    const respondAfterStart = vi.fn();
+    await statusHandler?.({ respond: respondAfterStart });
+    expect(respondAfterStart).toHaveBeenCalledWith(
+      true,
+      expect.objectContaining({
+        parity: expect.objectContaining({
+          checkedAt: expect.any(String),
+          upstreamToolCount: 2,
+          unexpectedUpstreamTools: ["new_upstream_tool"],
+        }),
+      }),
+    );
 
     bridgeListTools.mockRejectedValueOnce(new Error("startup-failed"));
     await service?.start();
     expect(logger.error).toHaveBeenCalledWith(expect.stringContaining("startup-failed"));
+
+    const respondAfterFailure = vi.fn();
+    await statusHandler?.({ respond: respondAfterFailure });
+    expect(respondAfterFailure).toHaveBeenCalledWith(
+      true,
+      expect.objectContaining({
+        parity: expect.objectContaining({
+          error: "startup-failed",
+        }),
+      }),
+    );
 
     await service?.stop?.();
     expect(bridgeClose).toHaveBeenCalled();

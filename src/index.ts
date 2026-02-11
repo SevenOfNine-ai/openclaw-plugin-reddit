@@ -8,7 +8,7 @@ import type { OpenClawPluginApi, ToolResult } from "./openclaw-api.js";
 import { WritePolicyGuard } from "./policy.js";
 import { RedditMcpBridge, buildLaunchSpec, extractTextFromToolResult } from "./reddit-mcp-bridge.js";
 import { RedditRatePolicy } from "./rate-limit.js";
-import { ALL_TOOL_NAMES, READ_TOOL_NAMES, TOOL_SPECS, isWriteTool } from "./tool-specs.js";
+import { ALL_TOOL_NAMES, TOOL_SPECS, isWriteTool } from "./tool-specs.js";
 
 function asErrorResult(error: unknown): ToolResult {
   const message = error instanceof Error ? error.message : String(error);
@@ -19,16 +19,31 @@ function asErrorResult(error: unknown): ToolResult {
   };
 }
 
-function buildStatusPayload(config: PluginConfig, bridge: RedditMcpBridge, ratePolicy: RedditRatePolicy) {
+type ParitySnapshot = {
+  checkedAt: string | null;
+  upstreamToolCount: number | null;
+  missingExpectedTools: string[];
+  unexpectedUpstreamTools: string[];
+  error: string | null;
+};
+
+function buildStatusPayload(
+  config: PluginConfig,
+  bridge: RedditMcpBridge,
+  ratePolicy: RedditRatePolicy,
+  parity: ParitySnapshot,
+) {
   return {
     mode: {
       writeEnabled: config.write.enabled,
       deleteEnabled: config.write.allowDelete,
       requireSubredditAllowlist: config.write.requireSubredditAllowlist,
+      allowedTools: [...config.write.allowedTools],
       allowedSubreddits: [...config.write.allowedSubreddits],
     },
     bridge: bridge.status(),
     rateLimit: ratePolicy.snapshot(),
+    parity,
   };
 }
 
@@ -45,6 +60,14 @@ const plugin = {
     const bridge = new RedditMcpBridge(launchSpec, config.startupTimeoutMs);
     const ratePolicy = new RedditRatePolicy(config.rateLimit);
     const writeGuard = new WritePolicyGuard(config.write);
+
+    const parity: ParitySnapshot = {
+      checkedAt: null,
+      upstreamToolCount: null,
+      missingExpectedTools: [],
+      unexpectedUpstreamTools: [],
+      error: null,
+    };
 
     const credentialErrors = validateCredentialReadiness(config, resolvedEnv);
     if (credentialErrors.length > 0) {
@@ -109,7 +132,7 @@ const plugin = {
 
     api.registerGatewayMethod("openclaw-plugin-reddit.status", async ({ respond }) => {
       try {
-        respond(true, buildStatusPayload(config, bridge, ratePolicy));
+        respond(true, buildStatusPayload(config, bridge, ratePolicy, parity));
       } catch (error) {
         respond(false, {
           error: error instanceof Error ? error.message : String(error),
@@ -122,12 +145,28 @@ const plugin = {
       start: async () => {
         try {
           const tools = await bridge.listTools();
-          const available = new Set(tools.map((entry) => entry.name));
-          const missingReadTools = READ_TOOL_NAMES.filter((toolName) => !available.has(toolName));
+          const upstreamNames = tools.map((entry) => entry.name);
+          const available = new Set(upstreamNames);
 
-          if (missingReadTools.length > 0) {
+          const missingExpectedTools = ALL_TOOL_NAMES.filter((toolName) => !available.has(toolName));
+          const expected = new Set<string>(ALL_TOOL_NAMES);
+          const unexpectedUpstreamTools = upstreamNames.filter((name) => !expected.has(name));
+
+          parity.checkedAt = new Date().toISOString();
+          parity.upstreamToolCount = upstreamNames.length;
+          parity.missingExpectedTools = missingExpectedTools;
+          parity.unexpectedUpstreamTools = unexpectedUpstreamTools;
+          parity.error = null;
+
+          if (missingExpectedTools.length > 0) {
             api.logger.warn(
-              `[openclaw-plugin-reddit] MCP server missing expected read tools: ${missingReadTools.join(", ")}`,
+              `[openclaw-plugin-reddit] MCP server missing expected tools: ${missingExpectedTools.join(", ")}`,
+            );
+          }
+
+          if (unexpectedUpstreamTools.length > 0) {
+            api.logger.warn(
+              `[openclaw-plugin-reddit] MCP server exposes unwrapped tools: ${unexpectedUpstreamTools.join(", ")}`,
             );
           }
 
@@ -137,6 +176,8 @@ const plugin = {
               .args.join(" ")}`,
           );
         } catch (error) {
+          parity.checkedAt = new Date().toISOString();
+          parity.error = error instanceof Error ? error.message : String(error);
           api.logger.error(
             `[openclaw-plugin-reddit] startup bridge check failed: ${
               error instanceof Error ? error.message : String(error)
@@ -155,7 +196,7 @@ const plugin = {
           .command("reddit-status")
           .description("Show OpenClaw Reddit plugin status")
           .action(() => {
-            const payload = buildStatusPayload(config, bridge, ratePolicy);
+            const payload = buildStatusPayload(config, bridge, ratePolicy, parity);
             console.log(JSON.stringify(payload, null, 2));
           });
       },

@@ -60,6 +60,21 @@
         "properties": {
           "enabled": { "type": "boolean", "default": false },
           "allowDelete": { "type": "boolean", "default": false },
+          "allowedTools": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "create_post",
+                "reply_to_post",
+                "edit_post",
+                "edit_comment",
+                "delete_post",
+                "delete_comment"
+              ]
+            },
+            "default": []
+          },
           "requireSubredditAllowlist": { "type": "boolean", "default": true },
           "allowedSubreddits": {
             "type": "array",
@@ -144,6 +159,9 @@
     },
     "write.allowDelete": {
       "label": "Allow Delete Tools"
+    },
+    "write.allowedTools": {
+      "label": "Allowed Write Tools"
     },
     "write.requireSubredditAllowlist": {
       "label": "Require Subreddit Allowlist for Create Post"

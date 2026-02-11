@@ -35,8 +35,9 @@ All write tools must pass:
 
 1. tool is allowlisted by OpenClaw policy (because optional)
 2. plugin `write.enabled=true`
-3. plugin runtime policy checks
-4. write rate limits and interval checks
+3. tool is explicitly listed in `write.allowedTools`
+4. plugin runtime policy checks
+5. write rate limits and interval checks
 
 Additional delete gate:
 
@@ -51,7 +52,10 @@ Additional subreddit gate:
 Minimal diagnostic method:
 
 - `openclaw-plugin-reddit.status`
-  - returns policy mode, limiter settings, and MCP bridge health snapshot.
+  - returns policy mode, limiter settings, MCP bridge health, and parity snapshot:
+    - missing expected tools
+    - unexpected upstream tools
+    - last parity check timestamp
 
 ## CLI command
 

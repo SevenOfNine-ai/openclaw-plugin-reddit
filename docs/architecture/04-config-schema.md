@@ -24,6 +24,7 @@
   write: {
     enabled: false,
     allowDelete: false,
+    allowedTools: [],
     requireSubredditAllowlist: true,
     allowedSubreddits: []
   },
@@ -40,6 +41,7 @@
 
 - `write.enabled = false`
 - `write.allowDelete = false`
+- `write.allowedTools = []` (explicit per-write-tool opt-in)
 - `write.requireSubredditAllowlist = true`
 - `rateLimit` enabled with conservative defaults
 - no secret values in config itself
@@ -49,6 +51,7 @@
 - Unknown properties rejected (`additionalProperties: false`).
 - Numeric rate limits must be positive and bounded.
 - Environment variable key names must be non-empty strings.
+- `write.allowedTools` must be valid known write tool names.
 - `allowedSubreddits` normalized to lowercase unique list.
 
 ## Hardening guidance
