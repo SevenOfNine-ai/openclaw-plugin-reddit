@@ -10,6 +10,28 @@ import { RedditMcpBridge, buildLaunchSpec, extractTextFromToolResult } from "./r
 import { RedditRatePolicy } from "./rate-limit.js";
 import { ALL_TOOL_NAMES, TOOL_SPECS, isWriteTool } from "./tool-specs.js";
 
+const WRITE_TOOLS_WITH_POLICY_ONLY_SUBREDDIT = new Set([
+  "reply_to_post",
+  "edit_post",
+  "edit_comment",
+  "delete_post",
+  "delete_comment",
+]);
+
+function sanitizeParamsForBridge(toolName: string, params: unknown): unknown {
+  if (!WRITE_TOOLS_WITH_POLICY_ONLY_SUBREDDIT.has(toolName)) {
+    return params;
+  }
+
+  if (!params || typeof params !== "object" || Array.isArray(params)) {
+    return params;
+  }
+
+  const forward = { ...(params as Record<string, unknown>) };
+  delete forward.subreddit;
+  return forward;
+}
+
 function asErrorResult(error: unknown): ToolResult {
   const message = error instanceof Error ? error.message : String(error);
   return {
@@ -129,7 +151,7 @@ const plugin = {
           }
         }
 
-        const result = await bridge.callTool(toolName, params);
+        const result = await bridge.callTool(toolName, sanitizeParamsForBridge(toolName, params));
         const text = extractTextFromToolResult(result);
         return {
           content: [{ type: "text", text }],

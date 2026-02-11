@@ -28,33 +28,37 @@ export class WritePolicyGuard {
     if (!this.config.enabled) {
       const message = this.verboseErrors
         ? `Write tool '${toolName}' is blocked: write mode is disabled. Enable write mode explicitly in plugin config.`
-        : `Write operation blocked: write mode is disabled.`;
+        : "Write operation blocked: write mode is disabled.";
       throw new Error(message);
     }
 
     if (!this.allowedWriteTools.has(toolName)) {
       const message = this.verboseErrors
         ? `Write tool '${toolName}' is blocked: it is not listed in write.allowedTools.`
-        : `Write operation blocked: tool not in allowlist.`;
+        : "Write operation blocked: tool not in allowlist.";
       throw new Error(message);
     }
 
     if ((toolName === "delete_post" || toolName === "delete_comment") && !this.config.allowDelete) {
       const message = this.verboseErrors
         ? `Write tool '${toolName}' is blocked: delete operations require write.allowDelete=true.`
-        : `Delete operation blocked: explicit opt-in required.`;
+        : "Delete operation blocked: explicit opt-in required.";
       throw new Error(message);
     }
 
-    if (toolName === "create_post" && this.config.requireSubredditAllowlist) {
+    if (this.config.requireSubredditAllowlist) {
       const subreddit = this.readSubreddit(params);
       if (!subreddit) {
-        throw new Error("create_post blocked: subreddit is required for allowlist validation.");
-      }
-      if (!this.allowedSubreddits.has(subreddit.toLowerCase())) {
         const message = this.verboseErrors
-          ? `create_post blocked: subreddit '${subreddit}' is not in write.allowedSubreddits allowlist.`
-          : `create_post blocked: subreddit not in allowlist.`;
+          ? `Write tool '${toolName}' blocked: subreddit is required for allowlist validation when write.requireSubredditAllowlist=true.`
+          : "Write operation blocked: subreddit is required for allowlist validation.";
+        throw new Error(message);
+      }
+
+      if (!this.allowedSubreddits.has(subreddit)) {
+        const message = this.verboseErrors
+          ? `Write tool '${toolName}' blocked: subreddit '${subreddit}' is not in write.allowedSubreddits allowlist.`
+          : "Write operation blocked: subreddit not in allowlist.";
         throw new Error(message);
       }
     }

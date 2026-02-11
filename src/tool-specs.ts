@@ -268,6 +268,11 @@ export const TOOL_SPECS: Record<RedditToolName, ToolSpec> = {
       properties: {
         post_id: { type: "string" },
         content: { type: "string" },
+        subreddit: {
+          type: "string",
+          description:
+            "Subreddit context for policy checks. Required by this wrapper when write.requireSubredditAllowlist=true.",
+        },
       },
     },
     paramsSchema: replySchema,
@@ -283,6 +288,11 @@ export const TOOL_SPECS: Record<RedditToolName, ToolSpec> = {
       properties: {
         thing_id: { type: "string" },
         new_text: { type: "string" },
+        subreddit: {
+          type: "string",
+          description:
+            "Subreddit context for policy checks. Required by this wrapper when write.requireSubredditAllowlist=true.",
+        },
       },
     },
     paramsSchema: editSchema,
@@ -298,6 +308,11 @@ export const TOOL_SPECS: Record<RedditToolName, ToolSpec> = {
       properties: {
         thing_id: { type: "string" },
         new_text: { type: "string" },
+        subreddit: {
+          type: "string",
+          description:
+            "Subreddit context for policy checks. Required by this wrapper when write.requireSubredditAllowlist=true.",
+        },
       },
     },
     paramsSchema: editSchema,
@@ -312,6 +327,11 @@ export const TOOL_SPECS: Record<RedditToolName, ToolSpec> = {
       required: ["thing_id"],
       properties: {
         thing_id: { type: "string" },
+        subreddit: {
+          type: "string",
+          description:
+            "Subreddit context for policy checks. Required by this wrapper when write.requireSubredditAllowlist=true.",
+        },
       },
     },
     paramsSchema: deleteSchema,
@@ -326,6 +346,11 @@ export const TOOL_SPECS: Record<RedditToolName, ToolSpec> = {
       required: ["thing_id"],
       properties: {
         thing_id: { type: "string" },
+        subreddit: {
+          type: "string",
+          description:
+            "Subreddit context for policy checks. Required by this wrapper when write.requireSubredditAllowlist=true.",
+        },
       },
     },
     paramsSchema: deleteSchema,

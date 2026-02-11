@@ -119,12 +119,13 @@ Risk:
 
 Mitigations:
 
-- Subreddit allowlist check for create-post flow (when enabled).
-- Explicit config gate to disable allowlist bypass.
+- Subreddit allowlist check for all write tools when `write.requireSubredditAllowlist=true`.
+- Wrapper requires explicit `subreddit` context for reply/edit/delete policy checks.
+- Explicit config gate to disable allowlist mode when intentionally operating without subreddit scoping.
 
 Residual risk:
 
-- Reply/edit/delete on existing IDs may still affect unintended content if operator permits writes.
+- If operator disables subreddit allowlist mode, write scope becomes broader by design.
 
 ## Security defaults summary
 

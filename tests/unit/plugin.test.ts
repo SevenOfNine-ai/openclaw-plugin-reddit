@@ -269,6 +269,110 @@ describe("plugin registration and policy behavior", () => {
     expect(result?.content[0]?.text).toContain("subreddit not in allowlist");
   });
 
+  it("blocks reply/edit/delete writes outside allowlist", async () => {
+    process.env.REDDIT_USERNAME = "user";
+    process.env.REDDIT_PASSWORD = "pass";
+
+    const { tools } = registerPlugin({
+      write: {
+        enabled: true,
+        allowDelete: true,
+        allowedTools: ["reply_to_post", "edit_post", "delete_comment"],
+        requireSubredditAllowlist: true,
+        allowedSubreddits: ["typescript"],
+      },
+    });
+
+    const replyResult = await tools.get("reply_to_post")?.tool.execute("tool-3a", {
+      post_id: "t3_abc",
+      content: "hello",
+      subreddit: "askreddit",
+    });
+    expect(replyResult?.isError).toBe(true);
+    expect(replyResult?.content[0]?.text).toContain("subreddit not in allowlist");
+
+    const editResult = await tools.get("edit_post")?.tool.execute("tool-3b", {
+      thing_id: "t3_abc",
+      new_text: "hello",
+      subreddit: "askreddit",
+    });
+    expect(editResult?.isError).toBe(true);
+    expect(editResult?.content[0]?.text).toContain("subreddit not in allowlist");
+
+    const deleteResult = await tools.get("delete_comment")?.tool.execute("tool-3c", {
+      thing_id: "t1_abc",
+      subreddit: "askreddit",
+    });
+    expect(deleteResult?.isError).toBe(true);
+    expect(deleteResult?.content[0]?.text).toContain("subreddit not in allowlist");
+  });
+
+  it("blocks write tools without subreddit when allowlist is required", async () => {
+    process.env.REDDIT_USERNAME = "user";
+    process.env.REDDIT_PASSWORD = "pass";
+
+    const { tools } = registerPlugin({
+      write: {
+        enabled: true,
+        allowDelete: true,
+        allowedTools: ["reply_to_post", "edit_comment", "delete_post"],
+        requireSubredditAllowlist: true,
+        allowedSubreddits: ["typescript"],
+      },
+    });
+
+    const replyResult = await tools.get("reply_to_post")?.tool.execute("tool-3d", {
+      post_id: "t3_abc",
+      content: "hello",
+    });
+    expect(replyResult?.isError).toBe(true);
+    expect(replyResult?.content[0]?.text).toContain("subreddit is required");
+
+    const editResult = await tools.get("edit_comment")?.tool.execute("tool-3e", {
+      thing_id: "t1_abc",
+      new_text: "hello",
+    });
+    expect(editResult?.isError).toBe(true);
+    expect(editResult?.content[0]?.text).toContain("subreddit is required");
+
+    const deleteResult = await tools.get("delete_post")?.tool.execute("tool-3f", {
+      thing_id: "t3_abc",
+    });
+    expect(deleteResult?.isError).toBe(true);
+    expect(deleteResult?.content[0]?.text).toContain("subreddit is required");
+  });
+
+  it("preserves non-allowlist write behavior when requireSubredditAllowlist=false", async () => {
+    process.env.REDDIT_USERNAME = "user";
+    process.env.REDDIT_PASSWORD = "pass";
+
+    const { tools } = registerPlugin({
+      write: {
+        enabled: true,
+        allowDelete: true,
+        allowedTools: ["reply_to_post", "delete_comment"],
+        requireSubredditAllowlist: false,
+      },
+      rateLimit: {
+        writePerMinute: 10,
+        minWriteIntervalMs: 0,
+      },
+    });
+
+    const replyResult = await tools.get("reply_to_post")?.tool.execute("tool-3g", {
+      post_id: "t3_abc",
+      content: "hello",
+    });
+
+    expect(replyResult?.isError).toBe(false);
+
+    const deleteResult = await tools.get("delete_comment")?.tool.execute("tool-3h", {
+      thing_id: "t1_abc",
+    });
+
+    expect(deleteResult?.isError).toBe(false);
+  });
+
   it("blocks delete tools unless allowDelete=true", async () => {
     process.env.REDDIT_USERNAME = "user";
     process.env.REDDIT_PASSWORD = "pass";
@@ -316,6 +420,43 @@ describe("plugin registration and policy behavior", () => {
       "create_post",
       expect.objectContaining({ subreddit: "typescript" }),
     );
+  });
+
+  it("uses subreddit for policy checks but strips wrapper-only subreddit before upstream write call", async () => {
+    process.env.REDDIT_USERNAME = "user";
+    process.env.REDDIT_PASSWORD = "pass";
+
+    const { tools } = registerPlugin({
+      write: {
+        enabled: true,
+        allowDelete: false,
+        allowedTools: ["reply_to_post"],
+        requireSubredditAllowlist: true,
+        allowedSubreddits: ["typescript"],
+      },
+      rateLimit: {
+        writePerMinute: 10,
+        minWriteIntervalMs: 0,
+      },
+    });
+
+    const result = await tools.get("reply_to_post")?.tool.execute("tool-5b", {
+      post_id: "t3_abc",
+      content: "hello",
+      subreddit: "typescript",
+    });
+
+    expect(result?.isError).toBe(false);
+
+    const call = bridgeCallTool.mock.calls.at(-1);
+    expect(call?.[0]).toBe("reply_to_post");
+    expect(call?.[1]).toEqual(
+      expect.objectContaining({
+        post_id: "t3_abc",
+        content: "hello",
+      }),
+    );
+    expect(call?.[1]).not.toHaveProperty("subreddit");
   });
 
   it("enforces write rate limit", async () => {

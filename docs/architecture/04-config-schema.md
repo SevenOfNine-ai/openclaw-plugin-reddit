@@ -59,4 +59,5 @@
 - Prefer `authMode=authenticated` in production with app credentials.
 - Keep `safeModeWriteEnabled=strict` unless human-supervised high-throughput use is required.
 - Keep delete disabled except when explicitly needed.
-- Maintain explicit `allowedSubreddits` for posting accounts.
+- Maintain explicit `allowedSubreddits` for write-enabled accounts.
+- With `write.requireSubredditAllowlist=true`, every write call must include a `subreddit` value so the wrapper can enforce allowlist policy.

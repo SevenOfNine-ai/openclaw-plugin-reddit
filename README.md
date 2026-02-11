@@ -39,6 +39,8 @@ Production-grade OpenClaw plugin that exposes Reddit capabilities through the pi
 - `delete_post`
 - `delete_comment`
 
+When `write.requireSubredditAllowlist=true`, all write tools require `subreddit` for allowlist checks. For non-`create_post` writes, this field is wrapper-only policy context and is stripped before forwarding upstream.
+
 ## Install
 
 ```bash
@@ -76,6 +78,8 @@ Place under `plugins.entries.openclaw-plugin-reddit.config`.
 ```
 
 ### Write-enabled mode (explicit opt-in)
+
+> When `write.requireSubredditAllowlist=true`, **all write calls** (`create_post`, `reply_to_post`, `edit_post`, `edit_comment`, `delete_post`, `delete_comment`) must include a `subreddit` value that appears in `write.allowedSubreddits`.
 
 ```json5
 {
@@ -149,7 +153,7 @@ Subprocess env hardening: the plugin forwards only a minimal allowlisted baselin
 - [ ] If enabling writes, keep `safeModeWriteEnabled=strict`.
 - [ ] Keep `allowDelete=false` unless absolutely required.
 - [ ] Explicitly set minimal `write.allowedTools`.
-- [ ] Restrict post creation with `allowedSubreddits`.
+- [ ] Restrict all writes with `allowedSubreddits` (and include `subreddit` on write calls when allowlist mode is enabled).
 - [ ] Keep OpenClaw agent write tool allowlist minimal (agent tools policy).
 - [ ] Keep OpenClaw plugin allowlist explicit (`plugins.allow`).
 - [ ] Run `openclaw security audit --deep` after rollout.

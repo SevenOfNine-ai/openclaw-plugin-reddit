@@ -45,7 +45,9 @@ Additional delete gate:
 
 Additional subreddit gate:
 
-- `create_post` can require subreddit allowlist (`allowedSubreddits`).
+- When `write.requireSubredditAllowlist=true`, all write tools require a `subreddit` value that must be in `write.allowedSubreddits`.
+- `create_post` already requires `subreddit`; for `reply_to_post` / `edit_*` / `delete_*`, this wrapper adds optional `subreddit` input for policy validation.
+- For non-`create_post` writes, `subreddit` is wrapper-only policy context and is removed before forwarding upstream.
 
 ## Gateway methods
 

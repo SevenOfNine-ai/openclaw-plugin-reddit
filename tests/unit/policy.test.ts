@@ -21,6 +21,7 @@ describe("WritePolicyGuard", () => {
       allowedTools: ["create_post"],
       requireSubredditAllowlist: true,
       allowedSubreddits: ["typescript"],
+      verboseErrors: false,
     });
 
     expect(() => guard.ensureToolAllowed("create_post", { subreddit: "typescript" })).toThrow(
@@ -35,7 +36,7 @@ describe("WritePolicyGuard", () => {
       allowedTools: ["reply_to_post"],
       requireSubredditAllowlist: false,
       allowedSubreddits: [],
-      verboseErrors: false, // Test default production behavior
+      verboseErrors: false,
     });
 
     expect(() => guard.ensureToolAllowed("create_post", { subreddit: "typescript" })).toThrow(
@@ -50,7 +51,7 @@ describe("WritePolicyGuard", () => {
       allowedTools: ["delete_post"],
       requireSubredditAllowlist: false,
       allowedSubreddits: [],
-      verboseErrors: false, // Test default production behavior
+      verboseErrors: false,
     });
 
     expect(() => guard.ensureToolAllowed("delete_post", { thing_id: "t3_abc" })).toThrow(
@@ -58,60 +59,146 @@ describe("WritePolicyGuard", () => {
     );
   });
 
-  it("blocks create_post for subreddit outside allowlist", () => {
-    const guard = new WritePolicyGuard({
-      enabled: true,
-      allowDelete: false,
-      allowedTools: ["create_post"],
-      requireSubredditAllowlist: true,
-      allowedSubreddits: ["typescript"],
-      verboseErrors: false, // Test default production behavior
-    });
-
-    expect(() => guard.ensureToolAllowed("create_post", { subreddit: "askreddit" })).toThrow(
-      "subreddit not in allowlist",
-    );
-  });
-
-  it("rejects create_post when params miss subreddit", () => {
-    const guard = new WritePolicyGuard({
-      enabled: true,
-      allowDelete: false,
-      allowedTools: ["create_post"],
-      requireSubredditAllowlist: true,
-      allowedSubreddits: ["typescript"],
-    });
-
-    expect(() => guard.ensureToolAllowed("create_post", {})).toThrow("subreddit is required");
-    expect(() => guard.ensureToolAllowed("create_post", null)).toThrow("subreddit is required");
-  });
-
-  it("allows delete when explicitly enabled", () => {
+  it("enforces subreddit allowlist for all write tools", () => {
     const guard = new WritePolicyGuard({
       enabled: true,
       allowDelete: true,
-      allowedTools: ["delete_comment"],
-      requireSubredditAllowlist: false,
-      allowedSubreddits: [],
+      allowedTools: [
+        "create_post",
+        "reply_to_post",
+        "edit_post",
+        "edit_comment",
+        "delete_post",
+        "delete_comment",
+      ],
+      requireSubredditAllowlist: true,
+      allowedSubreddits: ["typescript"],
+      verboseErrors: false,
     });
 
+    const blockedCalls: Array<[string, Record<string, unknown>]> = [
+      ["create_post", { subreddit: "askreddit", title: "hello", content: "world" }],
+      ["reply_to_post", { post_id: "t3_abc", content: "world", subreddit: "askreddit" }],
+      ["edit_post", { thing_id: "t3_abc", new_text: "world", subreddit: "askreddit" }],
+      ["edit_comment", { thing_id: "t1_abc", new_text: "world", subreddit: "askreddit" }],
+      ["delete_post", { thing_id: "t3_abc", subreddit: "askreddit" }],
+      ["delete_comment", { thing_id: "t1_abc", subreddit: "askreddit" }],
+    ];
+
+    for (const [toolName, params] of blockedCalls) {
+      expect(() => guard.ensureToolAllowed(toolName, params)).toThrow("subreddit not in allowlist");
+    }
+  });
+
+  it("rejects all write tools when allowlist is required but subreddit is missing", () => {
+    const guard = new WritePolicyGuard({
+      enabled: true,
+      allowDelete: true,
+      allowedTools: [
+        "create_post",
+        "reply_to_post",
+        "edit_post",
+        "edit_comment",
+        "delete_post",
+        "delete_comment",
+      ],
+      requireSubredditAllowlist: true,
+      allowedSubreddits: ["typescript"],
+      verboseErrors: false,
+    });
+
+    const callsMissingSubreddit: Array<[string, Record<string, unknown> | null]> = [
+      ["create_post", { title: "hello", content: "world" }],
+      ["reply_to_post", { post_id: "t3_abc", content: "world" }],
+      ["edit_post", { thing_id: "t3_abc", new_text: "world" }],
+      ["edit_comment", { thing_id: "t1_abc", new_text: "world" }],
+      ["delete_post", { thing_id: "t3_abc" }],
+      ["delete_comment", { thing_id: "t1_abc" }],
+      ["reply_to_post", null],
+    ];
+
+    for (const [toolName, params] of callsMissingSubreddit) {
+      expect(() => guard.ensureToolAllowed(toolName, params)).toThrow("subreddit is required");
+    }
+  });
+
+  it("allows prefixed subreddit values for all write tools", () => {
+    const guard = new WritePolicyGuard({
+      enabled: true,
+      allowDelete: true,
+      allowedTools: [
+        "create_post",
+        "reply_to_post",
+        "edit_post",
+        "edit_comment",
+        "delete_post",
+        "delete_comment",
+      ],
+      requireSubredditAllowlist: true,
+      allowedSubreddits: ["typescript"],
+      verboseErrors: false,
+    });
+
+    expect(
+      () =>
+        guard.ensureToolAllowed("create_post", {
+          subreddit: "r/typescript",
+          title: "hello",
+          content: "world",
+        }),
+    ).not.toThrow();
+
+    expect(
+      () =>
+        guard.ensureToolAllowed("reply_to_post", {
+          post_id: "t3_abc",
+          content: "world",
+          subreddit: "r/typescript",
+        }),
+    ).not.toThrow();
+
+    expect(
+      () =>
+        guard.ensureToolAllowed("edit_post", {
+          thing_id: "t3_abc",
+          new_text: "world",
+          subreddit: "r/typescript",
+        }),
+    ).not.toThrow();
+
+    expect(
+      () =>
+        guard.ensureToolAllowed("edit_comment", {
+          thing_id: "t1_abc",
+          new_text: "world",
+          subreddit: "r/typescript",
+        }),
+    ).not.toThrow();
+
+    expect(
+      () => guard.ensureToolAllowed("delete_post", { thing_id: "t3_abc", subreddit: "r/typescript" }),
+    ).not.toThrow();
+
+    expect(
+      () => guard.ensureToolAllowed("delete_comment", { thing_id: "t1_abc", subreddit: "r/typescript" }),
+    ).not.toThrow();
+  });
+
+  it("keeps non-allowlist write mode behavior unchanged when allowlist is disabled", () => {
+    const guard = new WritePolicyGuard({
+      enabled: true,
+      allowDelete: true,
+      allowedTools: ["reply_to_post", "delete_comment"],
+      requireSubredditAllowlist: false,
+      allowedSubreddits: ["typescript"],
+      verboseErrors: false,
+    });
+
+    expect(() => guard.ensureToolAllowed("reply_to_post", { post_id: "t3_abc", content: "world" })).not.toThrow();
     expect(() => guard.ensureToolAllowed("delete_comment", { thing_id: "t1_abc" })).not.toThrow();
   });
 
-  it("accepts prefixed subreddit when allowlisted", () => {
-    const guard = new WritePolicyGuard({
-      enabled: true,
-      allowDelete: false,
-      allowedTools: ["create_post"],
-      requireSubredditAllowlist: true,
-      allowedSubreddits: ["typescript"],
-    });
-
-    expect(() => guard.ensureToolAllowed("create_post", { subreddit: "r/typescript" })).not.toThrow();
-  });
-
-  it("shows verbose error messages when verboseErrors=true", () => {
-    // Test verbose write mode disabled
+  it("shows detailed messages when verboseErrors=true", () => {
     const guardDisabled = new WritePolicyGuard({
       enabled: false,
       allowDelete: false,
@@ -124,8 +211,7 @@ describe("WritePolicyGuard", () => {
       "write mode is disabled. Enable write mode explicitly",
     );
 
-    // Test verbose tool not in allowlist
-    const guard = new WritePolicyGuard({
+    const guardNotAllowlisted = new WritePolicyGuard({
       enabled: true,
       allowDelete: false,
       allowedTools: ["reply_to_post"],
@@ -133,33 +219,31 @@ describe("WritePolicyGuard", () => {
       allowedSubreddits: ["typescript"],
       verboseErrors: true,
     });
-    expect(() => guard.ensureToolAllowed("create_post", { subreddit: "typescript" })).toThrow(
+    expect(() => guardNotAllowlisted.ensureToolAllowed("create_post", { subreddit: "typescript" })).toThrow(
       "not listed in write.allowedTools",
     );
 
-    // Test verbose delete blocked
-    const guardWithDelete = new WritePolicyGuard({
+    const guardDelete = new WritePolicyGuard({
       enabled: true,
       allowDelete: false,
       allowedTools: ["delete_post"],
       requireSubredditAllowlist: true,
-      allowedSubreddits: [],
+      allowedSubreddits: ["typescript"],
       verboseErrors: true,
     });
-    expect(() => guardWithDelete.ensureToolAllowed("delete_post", { thing_id: "t3_abc" })).toThrow(
+    expect(() => guardDelete.ensureToolAllowed("delete_post", { thing_id: "t3_abc", subreddit: "typescript" })).toThrow(
       "delete operations require write.allowDelete=true",
     );
 
-    // Test verbose subreddit not in allowlist
-    const guardWithSubreddit = new WritePolicyGuard({
+    const guardSubreddit = new WritePolicyGuard({
       enabled: true,
-      allowDelete: false,
-      allowedTools: ["create_post"],
+      allowDelete: true,
+      allowedTools: ["reply_to_post"],
       requireSubredditAllowlist: true,
       allowedSubreddits: ["typescript"],
       verboseErrors: true,
     });
-    expect(() => guardWithSubreddit.ensureToolAllowed("create_post", { subreddit: "askreddit" })).toThrow(
+    expect(() => guardSubreddit.ensureToolAllowed("reply_to_post", { post_id: "t3_abc", content: "x", subreddit: "askreddit" })).toThrow(
       "is not in write.allowedSubreddits allowlist",
     );
   });

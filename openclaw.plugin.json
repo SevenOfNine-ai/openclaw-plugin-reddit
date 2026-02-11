@@ -173,10 +173,10 @@
       "label": "Allowed Write Tools"
     },
     "write.requireSubredditAllowlist": {
-      "label": "Require Subreddit Allowlist for Create Post"
+      "label": "Require Subreddit Allowlist for All Write Tools"
     },
     "write.allowedSubreddits": {
-      "label": "Allowed Subreddits for Post Creation"
+      "label": "Allowed Subreddits for Write Tools"
     },
     "rateLimit.readPerMinute": {
       "label": "Read Requests per Minute"
