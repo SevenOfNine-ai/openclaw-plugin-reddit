@@ -5,11 +5,44 @@ import { describe, expect, it, vi } from "vitest";
 import { parsePluginConfig } from "../../src/config.js";
 import {
   RedditMcpBridge,
+  buildChildProcessEnv,
   buildLaunchSpec,
   extractTextFromToolResult,
   findInstalledPackageDir,
   resolveRedditMcpLaunch,
 } from "../../src/reddit-mcp-bridge.js";
+
+describe("buildChildProcessEnv", () => {
+  it("includes allowlisted runtime env keys", () => {
+    const childEnv = buildChildProcessEnv({
+      PATH: "/usr/bin",
+      HOME: "/home/test",
+      LANG: "en_US.UTF-8",
+      LC_ALL: "en_US.UTF-8",
+      HTTPS_PROXY: "http://proxy",
+    });
+
+    expect(childEnv.PATH).toBe("/usr/bin");
+    expect(childEnv.HOME).toBe("/home/test");
+    expect(childEnv.LANG).toBe("en_US.UTF-8");
+    expect(childEnv.LC_ALL).toBe("en_US.UTF-8");
+    expect(childEnv.HTTPS_PROXY).toBe("http://proxy");
+  });
+
+  it("excludes unrelated secret env keys", () => {
+    const childEnv = buildChildProcessEnv({
+      PATH: "/usr/bin",
+      OPENAI_API_KEY: "secret",
+      ANTHROPIC_API_KEY: "secret2",
+      RANDOM_TOKEN: "secret3",
+    });
+
+    expect(childEnv.PATH).toBe("/usr/bin");
+    expect(childEnv.OPENAI_API_KEY).toBeUndefined();
+    expect(childEnv.ANTHROPIC_API_KEY).toBeUndefined();
+    expect(childEnv.RANDOM_TOKEN).toBeUndefined();
+  });
+});
 
 describe("buildLaunchSpec", () => {
   it("uses default node command and pinned server launch", () => {
@@ -50,7 +83,10 @@ describe("buildLaunchSpec", () => {
         REDDIT_PASSWORD: "pass",
         REDDIT_USER_AGENT: "ua",
       },
-      {},
+      {
+        PATH: "/usr/bin",
+        OPENAI_API_KEY: "should-not-pass",
+      },
     );
 
     expect(spec.command).toBe("npx");
@@ -58,6 +94,8 @@ describe("buildLaunchSpec", () => {
     expect(spec.env.REDDIT_SAFE_MODE).toBe("strict");
     expect(spec.env.REDDIT_CLIENT_ID).toBe("id");
     expect(spec.env.REDDIT_PASSWORD).toBe("pass");
+    expect(spec.env.PATH).toBe("/usr/bin");
+    expect(spec.env.OPENAI_API_KEY).toBeUndefined();
   });
 
   it("resolves launch command from installed package", () => {

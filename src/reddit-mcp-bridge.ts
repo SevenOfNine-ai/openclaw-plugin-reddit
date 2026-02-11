@@ -12,6 +12,37 @@ export type LaunchSpec = {
   env: Record<string, string>;
 };
 
+const CHILD_ENV_ALLOW_EXACT = new Set([
+  "PATH",
+  "HOME",
+  "USER",
+  "SHELL",
+  "TMPDIR",
+  "TEMP",
+  "TMP",
+  "LANG",
+  "TERM",
+  "TZ",
+  "SYSTEMROOT",
+  "COMSPEC",
+  "PATHEXT",
+  "WINDIR",
+  "HTTP_PROXY",
+  "HTTPS_PROXY",
+  "NO_PROXY",
+  "http_proxy",
+  "https_proxy",
+  "no_proxy",
+  "ALL_PROXY",
+  "all_proxy",
+  "NODE_EXTRA_CA_CERTS",
+  "SSL_CERT_FILE",
+  "SSL_CERT_DIR",
+  "OPENSSL_CONF",
+]);
+
+const CHILD_ENV_ALLOW_PREFIXES = ["LC_"];
+
 export function findInstalledPackageDir(packageName: string, fromDir: string): string {
   let current = path.resolve(fromDir);
   while (true) {
@@ -70,6 +101,25 @@ export function resolveRedditMcpLaunch(commandOverride?: string, argsOverride?: 
   );
 }
 
+export function buildChildProcessEnv(baseEnv: NodeJS.ProcessEnv): Record<string, string> {
+  const result: Record<string, string> = {};
+
+  for (const [key, value] of Object.entries(baseEnv)) {
+    if (typeof value !== "string") {
+      continue;
+    }
+
+    const allowByExact = CHILD_ENV_ALLOW_EXACT.has(key);
+    const allowByPrefix = CHILD_ENV_ALLOW_PREFIXES.some((prefix) => key.startsWith(prefix));
+
+    if (allowByExact || allowByPrefix) {
+      result[key] = value;
+    }
+  }
+
+  return result;
+}
+
 export function buildLaunchSpec(
   config: PluginConfig,
   resolvedEnv: ResolvedRedditEnv,
@@ -77,10 +127,7 @@ export function buildLaunchSpec(
 ): LaunchSpec {
   const safeMode = resolveSafeMode(config);
 
-  const envEntries = Object.entries(baseEnv).filter(
-    (entry): entry is [string, string] => typeof entry[1] === "string",
-  );
-  const env: Record<string, string> = Object.fromEntries(envEntries);
+  const env = buildChildProcessEnv(baseEnv);
 
   env.REDDIT_AUTH_MODE = config.reddit.authMode;
   env.REDDIT_SAFE_MODE = safeMode;

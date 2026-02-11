@@ -31,6 +31,7 @@ Mitigations:
 
 - Write tools are registered as `optional: true`.
 - Runtime default: `write.enabled=false`.
+- Per-tool explicit write allowlist (`write.allowedTools`).
 - Additional runtime policy checks before every write.
 - Delete tools require separate explicit opt-in (`allowDelete`).
 
@@ -63,6 +64,7 @@ Risk:
 Mitigations:
 
 - Plugin config carries env-var names, not raw secret values.
+- Child-process environment is allowlisted/minimized; unrelated host secrets are not forwarded.
 - No file writes of credentials.
 - Error/log paths redact or avoid secret-bearing content.
 
