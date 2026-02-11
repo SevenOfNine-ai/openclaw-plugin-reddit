@@ -164,18 +164,25 @@ describe("RedditMcpBridge callTool edge behavior", () => {
   it("retries once on recoverable transport errors", async () => {
     const bridge = new RedditMcpBridge({ command: "mock", args: [], env: {} }, 1000) as any;
 
-    bridge.connected = true;
-    bridge.client = {
-      callTool: vi
-        .fn()
-        .mockRejectedValueOnce(new Error("closed"))
-        .mockResolvedValueOnce({ content: [{ type: "text", text: "ok" }] }),
+    const firstClient = {
+      callTool: vi.fn().mockRejectedValueOnce(new Error("closed")),
     };
+    const secondClient = {
+      callTool: vi.fn().mockResolvedValue({ content: [{ type: "text", text: "ok" }] }),
+    };
+
+    bridge.connected = true;
+    bridge.client = firstClient;
     bridge.transport = { close: vi.fn(async () => undefined) };
-    bridge.reconnect = vi.fn(async () => undefined);
+
+    const reconnectSpy = vi.spyOn(bridge, "reconnect").mockImplementation(async () => {
+      bridge.connected = true;
+      bridge.client = secondClient;
+      bridge.transport = { close: vi.fn(async () => undefined) };
+    });
 
     const result = await bridge.callTool("get_top_posts", []);
-    expect(bridge.reconnect).toHaveBeenCalled();
+    expect(reconnectSpy).toHaveBeenCalled();
     expect(result).toEqual({ content: [{ type: "text", text: "ok" }] });
   });
 
@@ -213,5 +220,19 @@ describe("RedditMcpBridge callTool edge behavior", () => {
     bridge.client = null;
 
     await expect(bridge.close()).resolves.toBeUndefined();
+  });
+
+  it("close() swallows transport close errors and resets state", async () => {
+    const bridge = new RedditMcpBridge({ command: "mock", args: [], env: {} }, 1000) as any;
+    bridge.connected = true;
+    bridge.client = { callTool: vi.fn() };
+    bridge.transport = { close: vi.fn(async () => {
+      throw new Error("already closed");
+    }) };
+
+    await expect(bridge.close()).resolves.toBeUndefined();
+    expect(bridge.connected).toBe(false);
+    expect(bridge.client).toBeNull();
+    expect(bridge.transport).toBeNull();
   });
 });

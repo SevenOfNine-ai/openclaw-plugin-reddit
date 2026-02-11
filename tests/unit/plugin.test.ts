@@ -452,4 +452,27 @@ describe("plugin registration and policy behavior", () => {
     expect(consoleSpy).toHaveBeenCalled();
     consoleSpy.mockRestore();
   });
+
+  it("registers successfully when CLI registrar is not provided", () => {
+    const tools = new Map<string, ToolDefinition>();
+
+    const apiWithoutCli: OpenClawPluginApi = {
+      id: "openclaw-plugin-reddit",
+      config: {},
+      pluginConfig: {},
+      logger: {
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+      },
+      registerTool: (tool) => {
+        tools.set(tool.name, tool);
+      },
+      registerService: vi.fn(),
+      registerGatewayMethod: vi.fn(),
+    };
+
+    expect(() => plugin.register(apiWithoutCli)).not.toThrow();
+    expect(tools.size).toBe(ALL_TOOL_NAMES.length);
+  });
 });

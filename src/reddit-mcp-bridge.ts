@@ -273,12 +273,16 @@ export class RedditMcpBridge {
   public async close(): Promise<void> {
     this.connected = false;
 
-    if (this.transport) {
-      await this.transport.close();
+    try {
+      if (this.transport) {
+        await this.transport.close();
+      }
+    } catch {
+      // Best-effort shutdown: transport may already be torn down.
+    } finally {
+      this.transport = null;
+      this.client = null;
     }
-
-    this.transport = null;
-    this.client = null;
   }
 
   private async reconnect(): Promise<void> {

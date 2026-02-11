@@ -21,14 +21,14 @@ Executed suites:
 Latest results:
 
 - Test files: 7 passed
-- Tests: 48 passed, 0 failed
+- Tests: 57 passed, 0 failed
 
 Coverage (v8):
 
-- Statements: **96.01%**
-- Branches: **89.3%**
-- Functions: **94.23%**
-- Lines: **96.35%**
+- Statements: **96.78%**
+- Branches: **89.47%**
+- Functions: **94.44%**
+- Lines: **97.08%**
 
 Coverage gates enforced in config:
 
@@ -39,5 +39,11 @@ Coverage gates enforced in config:
 
 Notes:
 
-- Branch coverage is lower than line coverage due defensive fallback branches around transport and runtime guards.
-- Core policy modules (`config.ts`, `policy.ts`, `rate-limit.ts`, `tool-specs.ts`) are at or near full line coverage.
+- Security-critical logic paths (config, policy, rate-limit, tool registry) are fully line-covered.
+- Additional negative/security tests cover:
+  - blocked writes in read-only mode
+  - blocked writes not explicitly allowlisted
+  - blocked deletes without explicit delete opt-in
+  - missing-credential write denials
+  - subprocess env secret-boundary behavior
+  - startup parity drift diagnostics
