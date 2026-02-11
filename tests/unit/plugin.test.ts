@@ -189,6 +189,7 @@ describe("plugin registration and policy behavior", () => {
         allowedTools: ["reply_to_post"],
         requireSubredditAllowlist: false,
       },
+      verboseErrors: false, // Test default production behavior
     });
 
     const writeTool = tools.get("create_post")?.tool;
@@ -199,7 +200,7 @@ describe("plugin registration and policy behavior", () => {
     });
 
     expect(result?.isError).toBe(true);
-    expect(result?.content[0]?.text).toContain("write.allowedTools");
+    expect(result?.content[0]?.text).toContain("tool not in allowlist");
   });
 
   it("blocks writes with missing credentials when write mode enabled", async () => {
@@ -254,6 +255,7 @@ describe("plugin registration and policy behavior", () => {
         requireSubredditAllowlist: true,
         allowedSubreddits: ["typescript"],
       },
+      verboseErrors: false, // Test default production behavior
     });
 
     const writeTool = tools.get("create_post")?.tool;
@@ -264,7 +266,7 @@ describe("plugin registration and policy behavior", () => {
     });
 
     expect(result?.isError).toBe(true);
-    expect(result?.content[0]?.text).toContain("not in write.allowedSubreddits");
+    expect(result?.content[0]?.text).toContain("subreddit not in allowlist");
   });
 
   it("blocks delete tools unless allowDelete=true", async () => {
@@ -278,13 +280,14 @@ describe("plugin registration and policy behavior", () => {
         allowedTools: ["delete_post"],
         requireSubredditAllowlist: false,
       },
+      verboseErrors: false, // Test default production behavior
     });
 
     const deleteTool = tools.get("delete_post")?.tool;
     const result = await deleteTool?.execute("tool-4", { thing_id: "t3_abc" });
 
     expect(result?.isError).toBe(true);
-    expect(result?.content[0]?.text).toContain("allowDelete=true");
+    expect(result?.content[0]?.text).toContain("explicit opt-in required");
   });
 
   it("allows write tool when enabled and credentials exist", async () => {

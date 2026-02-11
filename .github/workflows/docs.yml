@@ -47,16 +47,13 @@ jobs:
         uses: actions/configure-pages@v4
 
       - name: Install GitBook CLI
-        run: yarn global add gitbook-cli
+        run: npm install -g gitbook-cli
 
       - name: Install GitBook plugins
-        run: |
-          cd docs
-          gitbook install || true
+        run: gitbook install || true
 
       - name: Build GitBook
-        run: |
-          gitbook build . ./_site
+        run: gitbook build . ./_site
         env:
           NODE_OPTIONS: --openssl-legacy-provider
 

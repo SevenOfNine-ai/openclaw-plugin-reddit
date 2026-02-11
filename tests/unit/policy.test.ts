@@ -35,10 +35,11 @@ describe("WritePolicyGuard", () => {
       allowedTools: ["reply_to_post"],
       requireSubredditAllowlist: false,
       allowedSubreddits: [],
+      verboseErrors: false, // Test default production behavior
     });
 
     expect(() => guard.ensureToolAllowed("create_post", { subreddit: "typescript" })).toThrow(
-      "not listed in write.allowedTools",
+      "tool not in allowlist",
     );
   });
 
@@ -49,10 +50,11 @@ describe("WritePolicyGuard", () => {
       allowedTools: ["delete_post"],
       requireSubredditAllowlist: false,
       allowedSubreddits: [],
+      verboseErrors: false, // Test default production behavior
     });
 
     expect(() => guard.ensureToolAllowed("delete_post", { thing_id: "t3_abc" })).toThrow(
-      "allowDelete=true",
+      "explicit opt-in required",
     );
   });
 
@@ -63,10 +65,11 @@ describe("WritePolicyGuard", () => {
       allowedTools: ["create_post"],
       requireSubredditAllowlist: true,
       allowedSubreddits: ["typescript"],
+      verboseErrors: false, // Test default production behavior
     });
 
     expect(() => guard.ensureToolAllowed("create_post", { subreddit: "askreddit" })).toThrow(
-      "not in write.allowedSubreddits",
+      "subreddit not in allowlist",
     );
   });
 
