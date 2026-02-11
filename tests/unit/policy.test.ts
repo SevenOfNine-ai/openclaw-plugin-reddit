@@ -109,4 +109,58 @@ describe("WritePolicyGuard", () => {
 
     expect(() => guard.ensureToolAllowed("create_post", { subreddit: "r/typescript" })).not.toThrow();
   });
+
+  it("shows verbose error messages when verboseErrors=true", () => {
+    // Test verbose write mode disabled
+    const guardDisabled = new WritePolicyGuard({
+      enabled: false,
+      allowDelete: false,
+      allowedTools: [],
+      requireSubredditAllowlist: true,
+      allowedSubreddits: [],
+      verboseErrors: true,
+    });
+    expect(() => guardDisabled.ensureToolAllowed("create_post", { subreddit: "test" })).toThrow(
+      "write mode is disabled. Enable write mode explicitly",
+    );
+
+    // Test verbose tool not in allowlist
+    const guard = new WritePolicyGuard({
+      enabled: true,
+      allowDelete: false,
+      allowedTools: ["reply_to_post"],
+      requireSubredditAllowlist: true,
+      allowedSubreddits: ["typescript"],
+      verboseErrors: true,
+    });
+    expect(() => guard.ensureToolAllowed("create_post", { subreddit: "typescript" })).toThrow(
+      "not listed in write.allowedTools",
+    );
+
+    // Test verbose delete blocked
+    const guardWithDelete = new WritePolicyGuard({
+      enabled: true,
+      allowDelete: false,
+      allowedTools: ["delete_post"],
+      requireSubredditAllowlist: true,
+      allowedSubreddits: [],
+      verboseErrors: true,
+    });
+    expect(() => guardWithDelete.ensureToolAllowed("delete_post", { thing_id: "t3_abc" })).toThrow(
+      "delete operations require write.allowDelete=true",
+    );
+
+    // Test verbose subreddit not in allowlist
+    const guardWithSubreddit = new WritePolicyGuard({
+      enabled: true,
+      allowDelete: false,
+      allowedTools: ["create_post"],
+      requireSubredditAllowlist: true,
+      allowedSubreddits: ["typescript"],
+      verboseErrors: true,
+    });
+    expect(() => guardWithSubreddit.ensureToolAllowed("create_post", { subreddit: "askreddit" })).toThrow(
+      "is not in write.allowedSubreddits allowlist",
+    );
+  });
 });

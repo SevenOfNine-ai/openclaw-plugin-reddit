@@ -3,13 +3,6 @@ name: Deploy Docs to GitHub Pages
 on:
   push:
     branches: ["main"]
-    paths:
-      - "docs/**"
-      - "README.md"
-      - "SECURITY_AUDIT_2026-02-11.md"
-      - "ENHANCEMENTS_2026-02-11.md"
-      - "CLAUDE.md"
-      - ".gitbook.yaml"
   workflow_dispatch:
 
 # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
