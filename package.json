@@ -25,7 +25,7 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "audit": "yarn npm audit --all --recursive",
+    "audit": "yarn npm audit --all --recursive --no-deprecations",
     "validate": "yarn lint && yarn typecheck && yarn test:coverage",
     "prepack": "npm run clean && npm run build"
   },
