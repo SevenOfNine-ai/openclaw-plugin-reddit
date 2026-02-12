@@ -43,6 +43,18 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           },
         },
       },
+      {
+        name: "vote_post",
+        description: "Mock vote tool",
+        inputSchema: {
+          type: "object",
+          required: ["thing_id"],
+          properties: {
+            thing_id: { type: "string" },
+            direction: { type: "string" },
+          },
+        },
+      },
     ],
   };
 });
@@ -67,6 +79,18 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         {
           type: "text",
           text: `mock-write:${JSON.stringify(args ?? {})}`,
+        },
+      ],
+      isError: false,
+    };
+  }
+
+  if (name === "vote_post") {
+    return {
+      content: [
+        {
+          type: "text",
+          text: `mock-vote:${JSON.stringify(args ?? {})}`,
         },
       ],
       isError: false,

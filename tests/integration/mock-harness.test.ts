@@ -26,6 +26,7 @@ describe("integration: mock MCP harness", () => {
       const names = tools.map((entry) => entry.name);
       expect(names).toContain("get_top_posts");
       expect(names).toContain("create_post");
+      expect(names).toContain("vote_post");
 
       const readResult = await bridge.callTool("get_top_posts", { subreddit: "typescript" });
       const readText = extractTextFromToolResult(readResult);
@@ -38,6 +39,13 @@ describe("integration: mock MCP harness", () => {
       });
       const writeText = extractTextFromToolResult(writeResult);
       expect(writeText).toContain("mock-write");
+
+      const voteResult = await bridge.callTool("vote_post", {
+        thing_id: "t3_demo",
+        direction: "1",
+      });
+      const voteText = extractTextFromToolResult(voteResult);
+      expect(voteText).toContain("mock-vote");
     } finally {
       await bridge.close();
     }

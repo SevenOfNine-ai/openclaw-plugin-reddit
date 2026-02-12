@@ -16,6 +16,7 @@ const WRITE_TOOLS_WITH_POLICY_ONLY_SUBREDDIT = new Set([
   "edit_comment",
   "delete_post",
   "delete_comment",
+  "vote_post",
 ]);
 
 function sanitizeParamsForBridge(toolName: string, params: unknown): unknown {

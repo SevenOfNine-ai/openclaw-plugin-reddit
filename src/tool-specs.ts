@@ -34,6 +34,7 @@ export const WRITE_TOOL_NAMES = [
   "edit_comment",
   "delete_post",
   "delete_comment",
+  "vote_post",
 ] as const;
 
 export const ALL_TOOL_NAMES = [...READ_TOOL_NAMES, ...WRITE_TOOL_NAMES] as const;
@@ -80,6 +81,11 @@ const editSchema = z.object({
 
 const deleteSchema = z.object({
   thing_id: z.string().min(1).max(100),
+});
+
+const voteSchema = z.object({
+  thing_id: z.string().min(1).max(100),
+  direction: z.enum(["1", "0", "-1"]).optional(),
 });
 
 export const TOOL_SPECS: Record<RedditToolName, ToolSpec> = {
@@ -354,5 +360,25 @@ export const TOOL_SPECS: Record<RedditToolName, ToolSpec> = {
       },
     },
     paramsSchema: deleteSchema,
+  },
+  vote_post: {
+    name: "vote_post",
+    description: "Vote on a post or comment by thing id (write mode required).",
+    mode: "write",
+    parameters: {
+      type: "object",
+      additionalProperties: false,
+      required: ["thing_id"],
+      properties: {
+        thing_id: { type: "string" },
+        direction: { type: "string", enum: ["1", "0", "-1"] },
+        subreddit: {
+          type: "string",
+          description:
+            "Subreddit context for policy checks. Required by this wrapper when write.requireSubredditAllowlist=true.",
+        },
+      },
+    },
+    paramsSchema: voteSchema,
   },
 };

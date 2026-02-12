@@ -38,6 +38,7 @@ Production-grade OpenClaw plugin that exposes Reddit capabilities through the pi
 - `edit_comment`
 - `delete_post`
 - `delete_comment`
+- `vote_post`
 
 When `write.requireSubredditAllowlist=true`, all write tools require `subreddit` for allowlist checks. For non-`create_post` writes, this field is wrapper-only policy context and is stripped before forwarding upstream.
 
