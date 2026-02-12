@@ -13,7 +13,9 @@
       },
       "args": {
         "type": "array",
-        "items": { "type": "string" },
+        "items": {
+          "type": "string"
+        },
         "description": "Optional override for MCP server command args"
       },
       "startupTimeoutMs": {
@@ -38,28 +40,102 @@
         "properties": {
           "authMode": {
             "type": "string",
-            "enum": ["auto", "authenticated", "anonymous"],
+            "enum": [
+              "auto",
+              "authenticated",
+              "anonymous"
+            ],
             "default": "auto"
           },
           "safeModeReadOnly": {
             "type": "string",
-            "enum": ["off", "standard", "strict"],
+            "enum": [
+              "off",
+              "standard",
+              "strict"
+            ],
             "default": "off"
           },
           "safeModeWriteEnabled": {
             "type": "string",
-            "enum": ["off", "standard", "strict"],
+            "enum": [
+              "off",
+              "standard",
+              "strict"
+            ],
             "default": "strict"
           },
           "env": {
             "type": "object",
             "additionalProperties": false,
             "properties": {
-              "clientId": { "type": "string", "default": "REDDIT_CLIENT_ID" },
-              "clientSecret": { "type": "string", "default": "REDDIT_CLIENT_SECRET" },
-              "username": { "type": "string", "default": "REDDIT_USERNAME" },
-              "password": { "type": "string", "default": "REDDIT_PASSWORD" },
-              "userAgent": { "type": "string", "default": "REDDIT_USER_AGENT" }
+              "clientId": {
+                "type": "string",
+                "default": "REDDIT_CLIENT_ID"
+              },
+              "clientSecret": {
+                "type": "string",
+                "default": "REDDIT_CLIENT_SECRET"
+              },
+              "username": {
+                "type": "string",
+                "default": "REDDIT_USERNAME"
+              },
+              "password": {
+                "type": "string",
+                "default": "REDDIT_PASSWORD"
+              },
+              "userAgent": {
+                "type": "string",
+                "default": "REDDIT_USER_AGENT"
+              }
+            }
+          },
+          "credentialProvider": {
+            "type": "string",
+            "enum": [
+              "git-credential",
+              "pass-cli",
+              "env"
+            ],
+            "default": "git-credential"
+          },
+          "username": {
+            "type": "string",
+            "description": "Reddit username (non-secret). Preferred over env var."
+          },
+          "gitCredential": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "host": {
+                "type": "string",
+                "default": "reddit.com"
+              },
+              "clientSecretPath": {
+                "type": "string",
+                "default": "oauth-client-secret"
+              },
+              "passwordPath": {
+                "type": "string",
+                "default": "password"
+              }
+            }
+          },
+          "passCli": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "command": {
+                "type": "string",
+                "default": "pass-cli"
+              },
+              "clientSecretKey": {
+                "type": "string"
+              },
+              "passwordKey": {
+                "type": "string"
+              }
             }
           }
         }
@@ -68,8 +144,14 @@
         "type": "object",
         "additionalProperties": false,
         "properties": {
-          "enabled": { "type": "boolean", "default": false },
-          "allowDelete": { "type": "boolean", "default": false },
+          "enabled": {
+            "type": "boolean",
+            "default": false
+          },
+          "allowDelete": {
+            "type": "boolean",
+            "default": false
+          },
           "allowedTools": {
             "type": "array",
             "items": {
@@ -85,10 +167,15 @@
             },
             "default": []
           },
-          "requireSubredditAllowlist": { "type": "boolean", "default": true },
+          "requireSubredditAllowlist": {
+            "type": "boolean",
+            "default": true
+          },
           "allowedSubreddits": {
             "type": "array",
-            "items": { "type": "string" },
+            "items": {
+              "type": "string"
+            },
             "default": []
           }
         }
@@ -195,6 +282,38 @@
     },
     "rateLimit.minWriteIntervalMs": {
       "label": "Minimum Write Interval (ms)"
+    },
+    "reddit.credentialProvider": {
+      "label": "Credential Provider"
+    },
+    "reddit.username": {
+      "label": "Reddit Username"
+    },
+    "reddit.gitCredential.host": {
+      "label": "Git Credential Host",
+      "advanced": true
+    },
+    "reddit.gitCredential.clientSecretPath": {
+      "label": "Git Credential Client Secret Path",
+      "advanced": true
+    },
+    "reddit.gitCredential.passwordPath": {
+      "label": "Git Credential Password Path",
+      "advanced": true
+    },
+    "reddit.passCli.command": {
+      "label": "pass-cli Command",
+      "advanced": true
+    },
+    "reddit.passCli.clientSecretKey": {
+      "label": "pass-cli Client Secret Key",
+      "advanced": true,
+      "sensitive": true
+    },
+    "reddit.passCli.passwordKey": {
+      "label": "pass-cli Password Key",
+      "advanced": true,
+      "sensitive": true
     }
   }
 }

@@ -92,10 +92,12 @@ describe("buildLaunchSpec", () => {
     );
 
     expect(spec.command).toBe("npx");
-    expect(spec.args).toEqual(["reddit-mcp-server"]);
+    expect(spec.args).toContain("reddit-mcp-server");
+    expect(spec.args).toContain("--credential-provider");
+    expect(spec.args).toContain("git-credential");
     expect(spec.env.REDDIT_SAFE_MODE).toBe("strict");
     expect(spec.env.REDDIT_CLIENT_ID).toBe("id");
-    expect(spec.env.REDDIT_PASSWORD).toBe("pass");
+    expect(spec.env.REDDIT_PASSWORD).toBeUndefined();
     expect(spec.env.PATH).toBe("/usr/bin");
     expect(spec.env.OPENAI_API_KEY).toBeUndefined();
   });

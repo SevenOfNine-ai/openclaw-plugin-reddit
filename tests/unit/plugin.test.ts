@@ -184,6 +184,7 @@ describe("plugin registration and policy behavior", () => {
     process.env.REDDIT_PASSWORD = "pass";
 
     const { tools } = registerPlugin({
+      reddit: { username: "user", credentialProvider: "env" },
       write: {
         enabled: true,
         allowedTools: ["reply_to_post"],
@@ -208,6 +209,7 @@ describe("plugin registration and policy behavior", () => {
     delete process.env.REDDIT_PASSWORD;
 
     const { tools, logger } = registerPlugin({
+      reddit: { username: "user", credentialProvider: "env" },
       write: {
         enabled: true,
         allowedTools: ["create_post"],
@@ -249,6 +251,7 @@ describe("plugin registration and policy behavior", () => {
     process.env.REDDIT_PASSWORD = "pass";
 
     const { tools } = registerPlugin({
+      reddit: { username: "user", credentialProvider: "env" },
       write: {
         enabled: true,
         allowedTools: ["create_post"],
@@ -274,6 +277,7 @@ describe("plugin registration and policy behavior", () => {
     process.env.REDDIT_PASSWORD = "pass";
 
     const { tools } = registerPlugin({
+      reddit: { username: "user", credentialProvider: "env" },
       write: {
         enabled: true,
         allowDelete: true,
@@ -312,6 +316,7 @@ describe("plugin registration and policy behavior", () => {
     process.env.REDDIT_PASSWORD = "pass";
 
     const { tools } = registerPlugin({
+      reddit: { username: "user", credentialProvider: "env" },
       write: {
         enabled: true,
         allowDelete: true,
@@ -347,6 +352,7 @@ describe("plugin registration and policy behavior", () => {
     process.env.REDDIT_PASSWORD = "pass";
 
     const { tools } = registerPlugin({
+      reddit: { username: "user", credentialProvider: "env" },
       write: {
         enabled: true,
         allowDelete: true,
@@ -378,6 +384,7 @@ describe("plugin registration and policy behavior", () => {
     process.env.REDDIT_PASSWORD = "pass";
 
     const { tools } = registerPlugin({
+      reddit: { username: "user", credentialProvider: "env" },
       write: {
         enabled: true,
         allowDelete: false,
@@ -399,6 +406,7 @@ describe("plugin registration and policy behavior", () => {
     process.env.REDDIT_PASSWORD = "pass";
 
     const { tools } = registerPlugin({
+      reddit: { username: "user", credentialProvider: "env" },
       write: {
         enabled: true,
         allowDelete: false,
@@ -427,6 +435,7 @@ describe("plugin registration and policy behavior", () => {
     process.env.REDDIT_PASSWORD = "pass";
 
     const { tools } = registerPlugin({
+      reddit: { username: "user", credentialProvider: "env" },
       write: {
         enabled: true,
         allowDelete: false,
@@ -464,6 +473,7 @@ describe("plugin registration and policy behavior", () => {
     process.env.REDDIT_PASSWORD = "pass";
 
     const { tools } = registerPlugin({
+      reddit: { username: "user", credentialProvider: "env" },
       write: {
         enabled: true,
         allowedTools: ["reply_to_post"],

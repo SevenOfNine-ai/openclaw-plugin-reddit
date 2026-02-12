@@ -5,7 +5,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { ErrorCode, McpError } from "@modelcontextprotocol/sdk/types.js";
 import type { PluginConfig, ResolvedRedditEnv } from "./config.js";
-import { resolveSafeMode } from "./config.js";
+import { resolveConfiguredUsername, resolveSafeMode } from "./config.js";
 
 export type LaunchSpec = {
   command: string;
@@ -145,33 +145,67 @@ export function buildLaunchSpec(
   baseEnv: NodeJS.ProcessEnv,
 ): LaunchSpec {
   const safeMode = resolveSafeMode(config);
+  const provider = config.reddit.credentialProvider;
+  const username = resolveConfiguredUsername(config, resolvedEnv);
 
   const env = buildChildProcessEnv(baseEnv);
 
   env.REDDIT_AUTH_MODE = config.reddit.authMode;
   env.REDDIT_SAFE_MODE = safeMode;
+  env.REDDIT_CREDENTIAL_PROVIDER = provider;
 
   if (resolvedEnv.REDDIT_CLIENT_ID) {
     env.REDDIT_CLIENT_ID = resolvedEnv.REDDIT_CLIENT_ID;
-  }
-  if (resolvedEnv.REDDIT_CLIENT_SECRET) {
-    env.REDDIT_CLIENT_SECRET = resolvedEnv.REDDIT_CLIENT_SECRET;
-  }
-  if (resolvedEnv.REDDIT_USERNAME) {
-    env.REDDIT_USERNAME = resolvedEnv.REDDIT_USERNAME;
-  }
-  if (resolvedEnv.REDDIT_PASSWORD) {
-    env.REDDIT_PASSWORD = resolvedEnv.REDDIT_PASSWORD;
   }
   if (resolvedEnv.REDDIT_USER_AGENT) {
     env.REDDIT_USER_AGENT = resolvedEnv.REDDIT_USER_AGENT;
   }
 
+  if (provider === "env") {
+    if (resolvedEnv.REDDIT_CLIENT_SECRET) {
+      env.REDDIT_CLIENT_SECRET = resolvedEnv.REDDIT_CLIENT_SECRET;
+    }
+    if (resolvedEnv.REDDIT_PASSWORD) {
+      env.REDDIT_PASSWORD = resolvedEnv.REDDIT_PASSWORD;
+    }
+    if (resolvedEnv.REDDIT_USERNAME) {
+      env.REDDIT_USERNAME = resolvedEnv.REDDIT_USERNAME;
+    }
+  }
+
+  if (provider === "pass-cli") {
+    env.REDDIT_PASS_CLI_COMMAND = config.reddit.passCli.command;
+    if (config.reddit.passCli.clientSecretKey) {
+      env.REDDIT_PASS_CLI_CLIENT_SECRET_KEY = config.reddit.passCli.clientSecretKey;
+    }
+    if (config.reddit.passCli.passwordKey) {
+      env.REDDIT_PASS_CLI_PASSWORD_KEY = config.reddit.passCli.passwordKey;
+    }
+  }
+
+  if (provider === "git-credential") {
+    env.REDDIT_GIT_CREDENTIAL_HOST = config.reddit.gitCredential.host;
+    env.REDDIT_GIT_CREDENTIAL_CLIENT_SECRET_PATH = config.reddit.gitCredential.clientSecretPath;
+    env.REDDIT_GIT_CREDENTIAL_PASSWORD_PATH = config.reddit.gitCredential.passwordPath;
+  }
+
   const launch = resolveRedditMcpLaunch(config.command, config.args);
+  const launchArgs = [...launch.args];
+
+  launchArgs.push("--credential-provider", provider, "--auth-mode", config.reddit.authMode, "--safe-mode", safeMode);
+  if (username) {
+    launchArgs.push("--username", username);
+  }
+  if (resolvedEnv.REDDIT_CLIENT_ID) {
+    launchArgs.push("--client-id", resolvedEnv.REDDIT_CLIENT_ID);
+  }
+  if (resolvedEnv.REDDIT_USER_AGENT) {
+    launchArgs.push("--user-agent", resolvedEnv.REDDIT_USER_AGENT);
+  }
 
   return {
     command: launch.command,
-    args: launch.args,
+    args: launchArgs,
     env,
   };
 }

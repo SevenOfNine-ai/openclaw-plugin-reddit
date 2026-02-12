@@ -3,6 +3,7 @@ import { WRITE_TOOL_NAMES } from "./tool-specs.js";
 
 export const AUTH_MODES = ["auto", "authenticated", "anonymous"] as const;
 export const SAFE_MODES = ["off", "standard", "strict"] as const;
+export const CREDENTIAL_PROVIDERS = ["git-credential", "pass-cli", "env"] as const;
 
 const envVarNameSchema = z.string().trim().min(1);
 
@@ -16,6 +17,8 @@ const pluginConfigSchema = z
     reddit: z
       .object({
         authMode: z.enum(AUTH_MODES).default("auto"),
+        credentialProvider: z.enum(CREDENTIAL_PROVIDERS).default("git-credential"),
+        username: z.string().trim().min(1).optional(),
         safeModeReadOnly: z.enum(SAFE_MODES).default("off"),
         safeModeWriteEnabled: z.enum(SAFE_MODES).default("strict"),
         env: z
@@ -33,9 +36,30 @@ const pluginConfigSchema = z
             password: "REDDIT_PASSWORD",
             userAgent: "REDDIT_USER_AGENT",
           }),
+        gitCredential: z
+          .object({
+            host: z.string().trim().min(1).default("reddit.com"),
+            clientSecretPath: z.string().trim().min(1).default("oauth-client-secret"),
+            passwordPath: z.string().trim().min(1).default("password"),
+          })
+          .default({
+            host: "reddit.com",
+            clientSecretPath: "oauth-client-secret",
+            passwordPath: "password",
+          }),
+        passCli: z
+          .object({
+            command: z.string().trim().min(1).default("pass-cli"),
+            clientSecretKey: z.string().trim().min(1).optional(),
+            passwordKey: z.string().trim().min(1).optional(),
+          })
+          .default({
+            command: "pass-cli",
+          }),
       })
       .default({
         authMode: "auto",
+        credentialProvider: "git-credential",
         safeModeReadOnly: "off",
         safeModeWriteEnabled: "strict",
         env: {
@@ -44,6 +68,14 @@ const pluginConfigSchema = z
           username: "REDDIT_USERNAME",
           password: "REDDIT_PASSWORD",
           userAgent: "REDDIT_USER_AGENT",
+        },
+        gitCredential: {
+          host: "reddit.com",
+          clientSecretPath: "oauth-client-secret",
+          passwordPath: "password",
+        },
+        passCli: {
+          command: "pass-cli",
         },
       }),
     write: z
@@ -144,29 +176,48 @@ export function resolveRedditEnvironment(
   };
 }
 
+export function resolveConfiguredUsername(config: PluginConfig, env: ResolvedRedditEnv): string | undefined {
+  if (config.reddit.username) {
+    return config.reddit.username;
+  }
+
+  if (config.reddit.credentialProvider === "env") {
+    return env.REDDIT_USERNAME;
+  }
+
+  return undefined;
+}
+
 export function resolveSafeMode(config: PluginConfig): (typeof SAFE_MODES)[number] {
   return config.write.enabled ? config.reddit.safeModeWriteEnabled : config.reddit.safeModeReadOnly;
 }
 
 export function validateCredentialReadiness(config: PluginConfig, env: ResolvedRedditEnv): string[] {
   const errors: string[] = [];
+  const username = resolveConfiguredUsername(config, env);
 
-  if (config.reddit.authMode === "authenticated") {
-    if (!env.REDDIT_CLIENT_ID) {
-      errors.push("Missing Reddit client ID for authenticated mode.");
-    }
-    if (!env.REDDIT_CLIENT_SECRET) {
+  if (config.reddit.authMode === "authenticated" && !env.REDDIT_CLIENT_ID) {
+    errors.push("Missing Reddit client ID for authenticated mode.");
+  }
+
+  if (config.reddit.credentialProvider === "env") {
+    if (config.reddit.authMode === "authenticated" && !env.REDDIT_CLIENT_SECRET) {
       errors.push("Missing Reddit client secret for authenticated mode.");
+    }
+    if (config.write.enabled && !env.REDDIT_PASSWORD) {
+      errors.push("Write mode enabled but Reddit password is missing (env provider).");
+    }
+  } else if (config.reddit.credentialProvider === "pass-cli") {
+    if (!config.reddit.passCli.clientSecretKey) {
+      errors.push("pass-cli provider requires reddit.passCli.clientSecretKey.");
+    }
+    if (config.write.enabled && !config.reddit.passCli.passwordKey) {
+      errors.push("Write mode enabled but reddit.passCli.passwordKey is missing.");
     }
   }
 
-  if (config.write.enabled) {
-    if (!env.REDDIT_USERNAME) {
-      errors.push("Write mode enabled but Reddit username is missing.");
-    }
-    if (!env.REDDIT_PASSWORD) {
-      errors.push("Write mode enabled but Reddit password is missing.");
-    }
+  if (config.write.enabled && !username) {
+    errors.push("Write mode enabled but Reddit username is missing (set reddit.username). ");
   }
 
   return errors;

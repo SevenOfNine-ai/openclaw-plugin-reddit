@@ -64,7 +64,7 @@ describe("config", () => {
 
   it("validates write credential readiness", () => {
     const config = parsePluginConfig({
-      reddit: { authMode: "authenticated" },
+      reddit: { authMode: "authenticated", credentialProvider: "env" },
       write: { enabled: true },
     });
 
@@ -125,7 +125,7 @@ describe("config", () => {
 
   it("returns no credential errors when requirements are met", () => {
     const config = parsePluginConfig({
-      reddit: { authMode: "authenticated" },
+      reddit: { authMode: "authenticated", credentialProvider: "env", username: "user" },
       write: { enabled: true },
     });
 

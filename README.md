@@ -240,3 +240,56 @@ GitHub Actions workflow enforces:
 - [`CLAUDE.md`](./CLAUDE.md) - Development guide
 - [`docs/research/01-openclaw-plugin-best-practices.md`](./docs/research/01-openclaw-plugin-best-practices.md)
 - [`docs/research/02-template-evaluation.md`](./docs/research/02-template-evaluation.md)
+
+## Secure Credential Providers (migration)
+
+The plugin now supports three credential providers:
+
+- `git-credential` (default, recommended)
+- `pass-cli`
+- `env` (legacy/backward-compatible, less secure)
+
+### Important changes
+
+- Username is non-secret and should be configured as `reddit.username`.
+- For secure providers (`git-credential`, `pass-cli`), the plugin does **not** inject `REDDIT_CLIENT_SECRET` / `REDDIT_PASSWORD` into the MCP subprocess environment.
+- `env` mode keeps old behavior for compatibility.
+
+### Example production config (recommended)
+
+```json
+{
+  "reddit": {
+    "authMode": "authenticated",
+    "credentialProvider": "git-credential",
+    "username": "your_reddit_username",
+    "gitCredential": {
+      "host": "reddit.com",
+      "clientSecretPath": "oauth-client-secret",
+      "passwordPath": "password"
+    }
+  },
+  "write": {
+    "enabled": true,
+    "allowedTools": ["create_post", "reply_to_post"],
+    "requireSubredditAllowlist": true,
+    "allowedSubreddits": ["yoursubreddit"]
+  }
+}
+```
+
+### pass-cli config
+
+```json
+{
+  "reddit": {
+    "credentialProvider": "pass-cli",
+    "username": "your_reddit_username",
+    "passCli": {
+      "command": "pass-cli",
+      "clientSecretKey": "reddit/client-secret",
+      "passwordKey": "reddit/password"
+    }
+  }
+}
+```
