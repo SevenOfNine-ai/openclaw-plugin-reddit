@@ -46,7 +46,8 @@ OpenClaw Gateway
 
 - Spawns and maintains stdio client connection to reddit-mcp-server.
 - Forwards tool calls and returns normalized responses.
-- Supports reconnect strategy on transport errors.
+- Supports typed reconnect strategy using structured MCP/Node transport signals (no string matching).
+- Tracks reconnect lifecycle state for diagnostics (`disconnectCount`, `reconnectCount`, last disconnect reason/code).
 
 ### 5) Tool wrappers
 

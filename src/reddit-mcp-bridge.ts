@@ -3,6 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+import { ErrorCode, McpError } from "@modelcontextprotocol/sdk/types.js";
 import type { PluginConfig, ResolvedRedditEnv } from "./config.js";
 import { resolveSafeMode } from "./config.js";
 
@@ -42,6 +43,24 @@ const CHILD_ENV_ALLOW_EXACT = new Set([
 ]);
 
 const CHILD_ENV_ALLOW_PREFIXES = ["LC_"];
+
+const RECOVERABLE_TRANSPORT_ERROR_CODES = new Set([
+  "EPIPE",
+  "ECONNRESET",
+  "ECONNREFUSED",
+  "ERR_STREAM_DESTROYED",
+  "ERR_IPC_CHANNEL_CLOSED",
+]);
+
+type DisconnectReason = "none" | "close" | "error";
+
+type BridgeLifecycle = {
+  disconnectCount: number;
+  reconnectCount: number;
+  pendingReconnect: boolean;
+  lastDisconnectReason: DisconnectReason;
+  lastDisconnectCode: string | null;
+};
 
 export function findInstalledPackageDir(packageName: string, fromDir: string): string {
   let current = path.resolve(fromDir);
@@ -194,6 +213,13 @@ export class RedditMcpBridge {
   private client: Client | null = null;
   private transport: StdioClientTransport | null = null;
   private connected = false;
+  private lifecycle: BridgeLifecycle = {
+    disconnectCount: 0,
+    reconnectCount: 0,
+    pendingReconnect: false,
+    lastDisconnectReason: "none",
+    lastDisconnectCode: null,
+  };
 
   public constructor(
     private readonly launchSpec: LaunchSpec,
@@ -201,8 +227,12 @@ export class RedditMcpBridge {
   ) {}
 
   public async connect(): Promise<void> {
-    if (this.connected && this.client && this.transport) {
+    if (this.connected && this.client && this.transport && !this.lifecycle.pendingReconnect) {
       return;
+    }
+
+    if (this.client || this.transport) {
+      await this.close();
     }
 
     const client = new Client({
@@ -217,11 +247,11 @@ export class RedditMcpBridge {
     });
 
     transport.onclose = () => {
-      this.connected = false;
+      this.markDisconnected("close");
     };
 
-    transport.onerror = () => {
-      this.connected = false;
+    transport.onerror = (error) => {
+      this.markDisconnected("error", error);
     };
 
     await withTimeout(client.connect(transport), this.startupTimeoutMs, "MCP connect timeout");
@@ -229,32 +259,33 @@ export class RedditMcpBridge {
     this.client = client;
     this.transport = transport;
     this.connected = true;
+    this.lifecycle.pendingReconnect = false;
   }
 
   public async listTools(): Promise<Array<{ name: string; description?: string | undefined; inputSchema?: unknown }>> {
     await this.connect();
-    const result = await this.client?.listTools();
-    return result?.tools ?? [];
+
+    const client = this.client;
+    if (!client) {
+      throw new Error("MCP client is not connected.");
+    }
+
+    const result = await client.listTools();
+    return result.tools ?? [];
   }
 
   public async callTool(toolName: string, params: unknown): Promise<unknown> {
     await this.connect();
 
     try {
-      return await this.client?.callTool({
-        name: toolName,
-        arguments: asObject(params),
-      });
+      return await this.callToolOnce(toolName, params);
     } catch (error) {
-      if (!isRecoverableTransportError(error)) {
+      if (!this.shouldReconnectAfterError(error)) {
         throw error;
       }
 
       await this.reconnect();
-      return await this.client?.callTool({
-        name: toolName,
-        arguments: asObject(params),
-      });
+      return await this.callToolOnce(toolName, params);
     }
   }
 
@@ -262,11 +293,13 @@ export class RedditMcpBridge {
     connected: boolean;
     command: string;
     args: string[];
+    lifecycle: BridgeLifecycle;
   } {
     return {
       connected: this.connected,
       command: this.launchSpec.command,
       args: [...this.launchSpec.args],
+      lifecycle: { ...this.lifecycle },
     };
   }
 
@@ -286,8 +319,37 @@ export class RedditMcpBridge {
   }
 
   private async reconnect(): Promise<void> {
+    this.lifecycle.reconnectCount += 1;
     await this.close();
     await this.connect();
+  }
+
+  private async callToolOnce(toolName: string, params: unknown): Promise<unknown> {
+    const client = this.client;
+    if (!client) {
+      throw new Error("MCP client is not connected.");
+    }
+
+    return await client.callTool({
+      name: toolName,
+      arguments: asObject(params),
+    });
+  }
+
+  private markDisconnected(reason: DisconnectReason, error?: unknown): void {
+    this.connected = false;
+    this.lifecycle.pendingReconnect = true;
+    this.lifecycle.disconnectCount += 1;
+    this.lifecycle.lastDisconnectReason = reason;
+    this.lifecycle.lastDisconnectCode = readRecoverableErrorCode(error);
+  }
+
+  private shouldReconnectAfterError(error: unknown): boolean {
+    if (this.lifecycle.pendingReconnect || !this.connected || !this.client || !this.transport) {
+      return true;
+    }
+
+    return isRecoverableTransportError(error);
   }
 }
 
@@ -298,14 +360,73 @@ function asObject(value: unknown): Record<string, unknown> {
   return value as Record<string, unknown>;
 }
 
-function isRecoverableTransportError(error: unknown): boolean {
-  const message = String(error);
-  return (
-    message.includes("closed") ||
-    message.includes("ECONNREFUSED") ||
-    message.includes("EPIPE") ||
-    message.includes("not connected")
-  );
+function readUnknownCode(value: unknown): string | number | undefined {
+  if (!value || typeof value !== "object") {
+    return undefined;
+  }
+
+  const code = (value as { code?: unknown }).code;
+  if (typeof code === "string" || typeof code === "number") {
+    return code;
+  }
+
+  return undefined;
+}
+
+function readUnknownCause(value: unknown): unknown {
+  if (!value || typeof value !== "object") {
+    return undefined;
+  }
+
+  return (value as { cause?: unknown }).cause;
+}
+
+function hasConnectionClosedCode(error: unknown, depth: number = 0): boolean {
+  if (depth > 4) {
+    return false;
+  }
+
+  const code = readUnknownCode(error);
+  if (code === ErrorCode.ConnectionClosed) {
+    return true;
+  }
+
+  const cause = readUnknownCause(error);
+  if (cause !== undefined) {
+    return hasConnectionClosedCode(cause, depth + 1);
+  }
+
+  return false;
+}
+
+function readRecoverableErrorCode(error: unknown, depth: number = 0): string | null {
+  if (depth > 4) {
+    return null;
+  }
+
+  const code = readUnknownCode(error);
+  if (typeof code === "string" && RECOVERABLE_TRANSPORT_ERROR_CODES.has(code)) {
+    return code;
+  }
+
+  const cause = readUnknownCause(error);
+  if (cause !== undefined) {
+    return readRecoverableErrorCode(cause, depth + 1);
+  }
+
+  return null;
+}
+
+export function isRecoverableTransportError(error: unknown): boolean {
+  if (error instanceof McpError) {
+    return error.code === ErrorCode.ConnectionClosed || readRecoverableErrorCode(error) !== null;
+  }
+
+  if (hasConnectionClosedCode(error)) {
+    return true;
+  }
+
+  return readRecoverableErrorCode(error) !== null;
 }
 
 async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {

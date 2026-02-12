@@ -219,6 +219,8 @@ yarn build
   - blocked writes in read-only mode
   - blocked delete without explicit opt-in
   - rate-limit denials
+  - structured reconnect signal handling (typed MCP / Node transport errors)
+  - reconnect lifecycle failure/recovery behavior
 
 ## CI quality gates
 

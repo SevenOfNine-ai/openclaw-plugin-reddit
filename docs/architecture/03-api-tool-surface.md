@@ -67,5 +67,5 @@ Minimal diagnostic method:
 ## Error behavior
 
 - Guardrail denials return explicit actionable errors (not silent fail).
-- Bridge errors return deterministic `MCP transport` context.
+- Bridge reconnect decisions are based on structured MCP/Node error metadata and transport lifecycle state.
 - Missing credentials in write-enabled mode produce fail-closed errors.

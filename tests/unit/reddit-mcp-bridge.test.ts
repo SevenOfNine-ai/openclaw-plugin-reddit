@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { ErrorCode, McpError } from "@modelcontextprotocol/sdk/types.js";
 import { describe, expect, it, vi } from "vitest";
 import { parsePluginConfig } from "../../src/config.js";
 import {
@@ -9,6 +10,7 @@ import {
   buildLaunchSpec,
   extractTextFromToolResult,
   findInstalledPackageDir,
+  isRecoverableTransportError,
   resolveRedditMcpLaunch,
 } from "../../src/reddit-mcp-bridge.js";
 
@@ -160,12 +162,30 @@ describe("extractTextFromToolResult", () => {
   });
 });
 
+describe("isRecoverableTransportError", () => {
+  it("treats structured MCP connection-closed errors as recoverable", () => {
+    const error = new McpError(ErrorCode.ConnectionClosed, "Connection closed");
+    expect(isRecoverableTransportError(error)).toBe(true);
+  });
+
+  it("treats nested Node transport codes as recoverable", () => {
+    const cause = Object.assign(new Error("socket closed"), { code: "EPIPE" });
+    const error = new Error("call failed", { cause });
+    expect(isRecoverableTransportError(error)).toBe(true);
+  });
+
+  it("does not treat plain message text as recoverable", () => {
+    const error = new Error("connection closed");
+    expect(isRecoverableTransportError(error)).toBe(false);
+  });
+});
+
 describe("RedditMcpBridge callTool edge behavior", () => {
   it("retries once on recoverable transport errors", async () => {
     const bridge = new RedditMcpBridge({ command: "mock", args: [], env: {} }, 1000) as any;
 
     const firstClient = {
-      callTool: vi.fn().mockRejectedValueOnce(new Error("closed")),
+      callTool: vi.fn().mockRejectedValueOnce(new McpError(ErrorCode.ConnectionClosed, "Connection closed")),
     };
     const secondClient = {
       callTool: vi.fn().mockResolvedValue({ content: [{ type: "text", text: "ok" }] }),
@@ -179,10 +199,12 @@ describe("RedditMcpBridge callTool edge behavior", () => {
       bridge.connected = true;
       bridge.client = secondClient;
       bridge.transport = { close: vi.fn(async () => undefined) };
+      bridge.lifecycle.pendingReconnect = false;
+      bridge.lifecycle.reconnectCount += 1;
     });
 
     const result = await bridge.callTool("get_top_posts", []);
-    expect(reconnectSpy).toHaveBeenCalled();
+    expect(reconnectSpy).toHaveBeenCalledTimes(1);
     expect(result).toEqual({ content: [{ type: "text", text: "ok" }] });
   });
 
@@ -191,11 +213,72 @@ describe("RedditMcpBridge callTool edge behavior", () => {
 
     bridge.connected = true;
     bridge.client = {
-      callTool: vi.fn().mockRejectedValue(new Error("fatal")),
+      callTool: vi.fn().mockRejectedValue(new McpError(ErrorCode.InvalidParams, "fatal")),
     };
     bridge.transport = { close: vi.fn(async () => undefined) };
 
     await expect(bridge.callTool("get_top_posts", {})).rejects.toThrow("fatal");
+  });
+
+  it("does not reconnect on message-only errors", async () => {
+    const bridge = new RedditMcpBridge({ command: "mock", args: [], env: {} }, 1000) as any;
+
+    bridge.connected = true;
+    bridge.client = {
+      callTool: vi.fn().mockRejectedValue(new Error("closed")),
+    };
+    bridge.transport = { close: vi.fn(async () => undefined) };
+
+    const reconnectSpy = vi.spyOn(bridge, "reconnect");
+
+    await expect(bridge.callTool("get_top_posts", {})).rejects.toThrow("closed");
+    expect(reconnectSpy).not.toHaveBeenCalled();
+  });
+
+  it("reconnects when lifecycle marks transport as disconnected", async () => {
+    const bridge = new RedditMcpBridge({ command: "mock", args: [], env: {} }, 1000) as any;
+
+    const firstClient = {
+      callTool: vi.fn().mockRejectedValueOnce(new Error("fatal")),
+    };
+    const secondClient = {
+      callTool: vi.fn().mockResolvedValue({ content: [{ type: "text", text: "ok" }] }),
+    };
+
+    bridge.connected = true;
+    bridge.client = firstClient;
+    bridge.transport = { close: vi.fn(async () => undefined) };
+
+    bridge.markDisconnected("close");
+    bridge.connect = vi.fn(async () => undefined);
+
+    const reconnectSpy = vi.spyOn(bridge, "reconnect").mockImplementation(async () => {
+      bridge.connected = true;
+      bridge.client = secondClient;
+      bridge.transport = { close: vi.fn(async () => undefined) };
+      bridge.lifecycle.pendingReconnect = false;
+      bridge.lifecycle.reconnectCount += 1;
+    });
+
+    const result = await bridge.callTool("get_top_posts", {});
+
+    expect(result).toEqual({ content: [{ type: "text", text: "ok" }] });
+    expect(reconnectSpy).toHaveBeenCalledTimes(1);
+    expect(bridge.status().lifecycle.lastDisconnectReason).toBe("close");
+  });
+
+  it("surfaces reconnect failures", async () => {
+    const bridge = new RedditMcpBridge({ command: "mock", args: [], env: {} }, 1000) as any;
+
+    bridge.connected = true;
+    bridge.client = {
+      callTool: vi.fn().mockRejectedValue(new McpError(ErrorCode.ConnectionClosed, "Connection closed")),
+    };
+    bridge.transport = { close: vi.fn(async () => undefined) };
+
+    vi.spyOn(bridge, "reconnect").mockRejectedValue(new Error("reconnect-failed"));
+
+    await expect(bridge.callTool("get_top_posts", {})).rejects.toThrow("reconnect-failed");
   });
 
   it("returns empty object args for non-object params", async () => {
@@ -223,6 +306,25 @@ describe("RedditMcpBridge callTool edge behavior", () => {
 
     expect(bridge.close).toHaveBeenCalledTimes(1);
     expect(bridge.connect).toHaveBeenCalledTimes(1);
+  });
+
+  it("tracks reconnect lifecycle counters in status", async () => {
+    const bridge = new RedditMcpBridge({ command: "mock", args: [], env: {} }, 1000) as any;
+
+    bridge.connected = true;
+    bridge.client = { callTool: vi.fn() };
+    bridge.transport = { close: vi.fn(async () => undefined) };
+
+    bridge.markDisconnected("error", Object.assign(new Error("pipe"), { code: "EPIPE" }));
+
+    expect(bridge.status().lifecycle).toEqual(
+      expect.objectContaining({
+        disconnectCount: 1,
+        pendingReconnect: true,
+        lastDisconnectReason: "error",
+        lastDisconnectCode: "EPIPE",
+      }),
+    );
   });
 
   it("close() is safe when no transport exists", async () => {
