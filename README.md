@@ -56,6 +56,8 @@ Place under `plugins.entries.openclaw-plugin-reddit.config`.
 
 ### Read-only mode (recommended default)
 
+`strictStartup` defaults to `false` for backward-safe behavior: startup check failures are logged but do not abort plugin startup.
+
 ```json5
 {
   plugins: {
@@ -127,6 +129,25 @@ Place under `plugins.entries.openclaw-plugin-reddit.config`.
         }
       }
     ]
+  }
+}
+```
+
+### Optional fail-fast startup mode
+
+Set `strictStartup: true` to fail plugin startup when initial bridge/parity checks fail.
+
+```json5
+{
+  plugins: {
+    entries: {
+      "openclaw-plugin-reddit": {
+        enabled: true,
+        config: {
+          strictStartup: true
+        }
+      }
+    }
   }
 }
 ```

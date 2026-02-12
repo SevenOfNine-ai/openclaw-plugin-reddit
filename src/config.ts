@@ -12,6 +12,7 @@ const pluginConfigSchema = z
     args: z.array(z.string()).optional(),
     startupTimeoutMs: z.number().int().min(1000).max(120_000).default(15_000),
     verboseErrors: z.boolean().default(false),
+    strictStartup: z.boolean().default(false),
     reddit: z
       .object({
         authMode: z.enum(AUTH_MODES).default("auto"),

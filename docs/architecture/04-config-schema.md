@@ -7,6 +7,7 @@
   command: "node",               // optional MCP command override
   args: ["path/to/server.js"],   // optional MCP args override
   startupTimeoutMs: 15000,
+  strictStartup: false,          // optional fail-fast startup
 
   reddit: {
     authMode: "auto",            // auto | authenticated | anonymous
@@ -39,6 +40,7 @@
 
 ## Default security posture
 
+- `strictStartup = false` (backward-safe startup default)
 - `write.enabled = false`
 - `write.allowDelete = false`
 - `write.allowedTools = []` (explicit per-write-tool opt-in)
@@ -57,6 +59,7 @@
 ## Hardening guidance
 
 - Prefer `authMode=authenticated` in production with app credentials.
+- Enable `strictStartup=true` in controlled deployments where startup parity drift must fail fast.
 - Keep `safeModeWriteEnabled=strict` unless human-supervised high-throughput use is required.
 - Keep delete disabled except when explicitly needed.
 - Maintain explicit `allowedSubreddits` for write-enabled accounts.

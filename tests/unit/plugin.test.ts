@@ -568,6 +568,41 @@ describe("plugin registration and policy behavior", () => {
     expect(bridgeClose).toHaveBeenCalled();
   });
 
+  it("keeps startup non-fatal by default when bridge checks fail", async () => {
+    const { services, logger } = registerPlugin({
+      strictStartup: false,
+    });
+
+    const service = services[0];
+    bridgeListTools.mockRejectedValueOnce(new Error("bridge-down"));
+
+    await expect(service?.start()).resolves.toBeUndefined();
+    expect(logger.error).toHaveBeenCalledWith(expect.stringContaining("bridge-down"));
+  });
+
+  it("fails startup in strict mode when bridge checks fail", async () => {
+    const { services, logger } = registerPlugin({
+      strictStartup: true,
+    });
+
+    const service = services[0];
+    bridgeListTools.mockRejectedValueOnce(new Error("bridge-down"));
+
+    await expect(service?.start()).rejects.toThrow("bridge-down");
+    expect(logger.error).toHaveBeenCalledWith(expect.stringContaining("bridge-down"));
+  });
+
+  it("fails startup in strict mode when parity drifts", async () => {
+    const { services } = registerPlugin({
+      strictStartup: true,
+    });
+
+    const service = services[0];
+    bridgeListTools.mockResolvedValueOnce([{ name: READ_TOOL_NAMES[0] }] as Array<{ name: string }>);
+
+    await expect(service?.start()).rejects.toThrow("startup parity check failed");
+  });
+
   it("registers CLI command and prints status", () => {
     const { cliRegistrar } = registerPlugin({});
     expect(cliRegistrar).toBeDefined();

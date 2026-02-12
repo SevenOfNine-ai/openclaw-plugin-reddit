@@ -10,6 +10,7 @@ describe("config", () => {
   it("applies secure defaults", () => {
     const config = parsePluginConfig({});
 
+    expect(config.strictStartup).toBe(false);
     expect(config.write.enabled).toBe(false);
     expect(config.write.allowDelete).toBe(false);
     expect(config.write.allowedTools).toEqual([]);
@@ -151,5 +152,13 @@ describe("config", () => {
     });
 
     expect(resolveSafeMode(config)).toBe("strict");
+  });
+
+  it("allows opting into strict startup mode", () => {
+    const config = parsePluginConfig({
+      strictStartup: true,
+    });
+
+    expect(config.strictStartup).toBe(true);
   });
 });

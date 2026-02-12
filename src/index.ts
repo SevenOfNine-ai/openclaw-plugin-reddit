@@ -62,11 +62,29 @@ function buildStatusPayload(
       requireSubredditAllowlist: config.write.requireSubredditAllowlist,
       allowedTools: [...config.write.allowedTools],
       allowedSubreddits: [...config.write.allowedSubreddits],
+      strictStartup: config.strictStartup,
     },
     bridge: bridge.status(),
     rateLimit: ratePolicy.snapshot(),
     parity,
   };
+}
+
+function buildParityFailureMessage(
+  missingExpectedTools: string[],
+  unexpectedUpstreamTools: string[],
+): string | null {
+  const issues: string[] = [];
+
+  if (missingExpectedTools.length > 0) {
+    issues.push(`missing expected tools: ${missingExpectedTools.join(", ")}`);
+  }
+
+  if (unexpectedUpstreamTools.length > 0) {
+    issues.push(`unexpected upstream tools: ${unexpectedUpstreamTools.join(", ")}`);
+  }
+
+  return issues.length > 0 ? issues.join("; ") : null;
 }
 
 const plugin = {
@@ -227,6 +245,11 @@ const plugin = {
             );
           }
 
+          const parityFailure = buildParityFailureMessage(missingExpectedTools, unexpectedUpstreamTools);
+          if (parityFailure && config.strictStartup) {
+            throw new Error(`startup parity check failed: ${parityFailure}`);
+          }
+
           api.logger.info(
             `[openclaw-plugin-reddit] ready. bridge=${bridge.status().command} args=${bridge
               .status()
@@ -234,12 +257,13 @@ const plugin = {
           );
         } catch (error) {
           parity.checkedAt = new Date().toISOString();
-          parity.error = error instanceof Error ? error.message : String(error);
-          api.logger.error(
-            `[openclaw-plugin-reddit] startup bridge check failed: ${
-              error instanceof Error ? error.message : String(error)
-            }`,
-          );
+          const message = error instanceof Error ? error.message : String(error);
+          parity.error = message;
+          api.logger.error(`[openclaw-plugin-reddit] startup bridge check failed: ${message}`);
+
+          if (config.strictStartup) {
+            throw error instanceof Error ? error : new Error(message);
+          }
         }
       },
       stop: async () => {
