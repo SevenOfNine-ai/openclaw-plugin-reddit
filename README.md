@@ -287,9 +287,15 @@ The plugin now supports three credential providers:
     "username": "your_reddit_username",
     "passCli": {
       "command": "pass-cli",
-      "clientSecretKey": "reddit/client-secret",
-      "passwordKey": "reddit/password"
+      "clientSecretKey": "pass://<share-id>/<item-id>/client_secret",
+      "passwordKey": "pass://<share-id>/<item-id>/password"
     }
   }
 }
 ```
+
+Runtime notes:
+- `git-credential` is the default provider and recommended baseline.
+- `pass-cli` is optional and should be configured with key/URI references only (no plaintext secrets in plugin config).
+- `env` is legacy mode for backward compatibility only; prefer it only in local/dev contexts.
+- For secure providers (`git-credential`, `pass-cli`), set `reddit.username` explicitly (or pass `--username` when running server directly).

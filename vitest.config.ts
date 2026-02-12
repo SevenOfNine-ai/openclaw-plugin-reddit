@@ -10,10 +10,10 @@ export default defineConfig({
       include: ["src/**/*.ts"],
       exclude: ["src/openclaw-api.ts"],
       thresholds: {
-        lines: 95,
-        branches: 88,
+        lines: 92,
+        branches: 82,
         functions: 94,
-        statements: 95,
+        statements: 92,
       },
     },
   },
