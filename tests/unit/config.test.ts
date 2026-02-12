@@ -161,4 +161,33 @@ describe("config", () => {
 
     expect(config.strictStartup).toBe(true);
   });
+
+  it("validates pass-cli credential requirements in write mode", () => {
+    const config = parsePluginConfig({
+      reddit: {
+        authMode: "authenticated",
+        credentialProvider: "pass-cli",
+        passCli: {
+          clientIdKey: "reddit/client-id",
+          clientSecretKey: "reddit/client-secret",
+          usernameKey: "reddit/username",
+          passwordKey: "reddit/password",
+        },
+      },
+      write: {
+        enabled: true,
+      },
+    });
+
+    const errors = validateCredentialReadiness(config, {
+      REDDIT_CLIENT_ID: "id",
+      REDDIT_CLIENT_SECRET: undefined,
+      REDDIT_USERNAME: undefined,
+      REDDIT_PASSWORD: undefined,
+      REDDIT_USER_AGENT: undefined,
+    });
+
+    const errorText = errors.join(" ");
+    expect(errorText).toContain("username");
+  });
 });

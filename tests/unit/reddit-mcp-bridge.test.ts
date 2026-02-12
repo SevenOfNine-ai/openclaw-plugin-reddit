@@ -176,6 +176,21 @@ describe("isRecoverableTransportError", () => {
     expect(isRecoverableTransportError(error)).toBe(true);
   });
 
+  it("treats non-MCP errors with connection-closed code as recoverable", () => {
+    const error = { code: ErrorCode.ConnectionClosed };
+    expect(isRecoverableTransportError(error)).toBe(true);
+  });
+
+  it("caps recursive cause traversal depth", () => {
+    const tooDeep = { code: "EPIPE" } as Record<string, unknown>;
+    let nested: Record<string, unknown> = tooDeep;
+    for (let i = 0; i < 6; i += 1) {
+      nested = { cause: nested };
+    }
+
+    expect(isRecoverableTransportError(nested)).toBe(false);
+  });
+
   it("does not treat plain message text as recoverable", () => {
     const error = new Error("connection closed");
     expect(isRecoverableTransportError(error)).toBe(false);
