@@ -106,6 +106,15 @@ export function resolveRedditMcpLaunch(commandOverride?: string, argsOverride?: 
     };
   }
 
+  const srcBin = path.join(packageDir, "src", "bin.ts");
+  if (fs.existsSync(srcBin)) {
+    return {
+      command: process.execPath,
+      args: ["--import", "tsx", srcBin],
+      packageDir,
+    };
+  }
+
   const srcIndex = path.join(packageDir, "src", "index.ts");
   if (fs.existsSync(srcIndex)) {
     return {
@@ -116,7 +125,7 @@ export function resolveRedditMcpLaunch(commandOverride?: string, argsOverride?: 
   }
 
   throw new Error(
-    `reddit-mcp-server entrypoint not found in ${packageDir}. Expected dist/bin.js or src/index.ts.`,
+    `reddit-mcp-server entrypoint not found in ${packageDir}. Expected dist/bin.js, src/bin.ts, or src/index.ts.`,
   );
 }
 
@@ -159,6 +168,9 @@ export function buildLaunchSpec(
   }
   if (resolvedEnv.REDDIT_USER_AGENT) {
     env.REDDIT_USER_AGENT = resolvedEnv.REDDIT_USER_AGENT;
+  }
+  if (username) {
+    env.REDDIT_USERNAME = username;
   }
 
   if (provider === "env") {
