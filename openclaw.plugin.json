@@ -162,7 +162,8 @@
                 "edit_post",
                 "edit_comment",
                 "delete_post",
-                "delete_comment"
+                "delete_comment",
+                "vote_post"
               ]
             },
             "default": []
