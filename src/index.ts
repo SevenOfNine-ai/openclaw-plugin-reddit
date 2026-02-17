@@ -131,6 +131,7 @@ const plugin = {
             );
             throw new Error(
               `Invalid parameters for ${toolName}: ${validationError instanceof Error ? validationError.message : String(validationError)}`,
+              { cause: validationError },
             );
           }
         }
