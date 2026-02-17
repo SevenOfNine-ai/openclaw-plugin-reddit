@@ -236,11 +236,11 @@ GitHub Actions workflow enforces:
 
 📚 **Full documentation is available at GitHub Pages** (deployed via GitBook)
 
-- [`docs/architecture/README.md`](./docs/architecture/README.md) - Architecture overview
-- [`SECURITY_AUDIT_2026-02-11.md`](./SECURITY_AUDIT_2026-02-11.md) - Security audit report
-- [`CLAUDE.md`](./CLAUDE.md) - Development guide
-- [`docs/research/01-openclaw-plugin-best-practices.md`](./docs/research/01-openclaw-plugin-best-practices.md)
-- [`docs/research/02-template-evaluation.md`](./docs/research/02-template-evaluation.md)
+- [Architecture overview](./architecture/README.md)
+- [Security audit report](./security-audit.md)
+- [Development guide](../CLAUDE.md)
+- [OpenClaw plugin best practices](./research/01-openclaw-plugin-best-practices.md)
+- [Template evaluation](./research/02-template-evaluation.md)
 
 ## Secure Credential Providers (migration)
 
