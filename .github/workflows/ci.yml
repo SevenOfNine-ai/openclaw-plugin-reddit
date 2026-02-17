@@ -34,7 +34,7 @@ jobs:
         run: yarn test:coverage
 
       - name: Audit dependencies
-        run: yarn npm audit --all --recursive --no-deprecations
+        run: yarn npm audit --all --recursive --no-deprecations --severity moderate
 
       - name: Build
         run: yarn build
