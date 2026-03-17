@@ -4,7 +4,7 @@
   "description": "Production-grade OpenClaw Reddit plugin wrapper with secure defaults",
   "license": "MIT",
   "type": "module",
-  "packageManager": "yarn@4.5.3",
+  "packageManager": "yarn@4.13.0",
   "main": "dist/index.js",
   "files": [
     "dist/",
@@ -40,7 +40,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",
-    "@types/node": "^25.4.0",
+    "@types/node": "^25.5.0",
     "@vitest/coverage-v8": "^4.1.0",
     "eslint": "^10.0.3",
     "typescript": "^5.9.3",

@@ -744,12 +744,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/node@npm:^25.4.0":
-  version: 25.4.0
-  resolution: "@types/node@npm:25.4.0"
+"@types/node@npm:^25.5.0":
+  version: 25.5.0
+  resolution: "@types/node@npm:25.5.0"
   dependencies:
     undici-types: "npm:~7.18.0"
-  checksum: 10/c8d55bdb395d56ad94d227724302b2615d6cd2d8a20f432a1ccf16bd4e537c61b062882e49dbd1fcfd845d91a18f62deb256ab07268c24549a4c7f740d74b903
+  checksum: 10/b1e8116bd8c9ff62e458b76d28a59cf7631537bb17e8961464bf754dd5b07b46f1620f568b2f89970505af9eef478dd74c614651b454c1ea95949ec472c64fcb
   languageName: node
   linkType: hard
 
@@ -2971,7 +2971,7 @@ __metadata:
   dependencies:
     "@eslint/js": "npm:^9.39.2"
     "@modelcontextprotocol/sdk": "npm:1.27.1"
-    "@types/node": "npm:^25.4.0"
+    "@types/node": "npm:^25.5.0"
     "@vitest/coverage-v8": "npm:^4.1.0"
     eslint: "npm:^10.0.3"
     reddit-mcp-server: "https://codeload.github.com/SevenOfNine-ai/reddit-mcp-server/tar.gz/aa188ec7aba1b6a81398c626dc0ddd45baa6fb68"
